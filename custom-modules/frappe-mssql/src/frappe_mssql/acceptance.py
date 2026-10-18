@@ -1,6 +1,7 @@
 """End-to-end ORM acceptance checks, run only in the disposable pilot site."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
+from pathlib import Path
 
 import frappe
 
@@ -23,13 +24,22 @@ def _employee(name, first_name="María", last_name="Peña"):
 
 def run():
     _pilot_only()
+    backend = frappe.db.native("SELECT DB_NAME(),CAST(SERVERPROPERTY('ProductMajorVersion') AS int)")[0]
+    assert backend[0] == "frappe_pilot" and backend[1] == 17
     assert {"frappe", "erpnext", "hrms"} <= set(frappe.get_installed_apps())
+    for directory in ("public", "private"):
+        fixture = Path(frappe.get_site_path(directory, "files", "mssql-pilot-unicode.txt"))
+        fixture.parent.mkdir(parents=True, exist_ok=True)
+        fixture.write_text(f"Respaldo {directory}: María Peña y José\n", encoding="utf-8")
     if not frappe.db.exists("Company", COMPANY):
         frappe.get_doc(dict(doctype="Company", company_name=COMPANY, abbr="MSP",
             default_currency="DOP", country="Dominican Republic",
             enable_perpetual_inventory=0)).insert()
     if not frappe.db.exists("Employee", EMPLOYEE):
         _employee(EMPLOYEE)
+    second_employee = EMPLOYEE + "-2"
+    if not frappe.db.exists("Employee", second_employee):
+        _employee(second_employee, first_name="Ángel")
     employee = frappe.get_doc("Employee", EMPLOYEE)
     assert employee.first_name == "María" and employee.last_name == "Peña"
     employee.middle_name = "José"
@@ -39,6 +49,9 @@ def run():
     page = frappe.get_list("Employee", filters={"last_name": ["like", "%Peña%"]},
         fields=["name", "last_name"], order_by="name", page_length=1, start=0)
     assert page and len(page) == 1
+    next_page = frappe.get_list("Employee", filters={"last_name": ["like", "%Peña%"]},
+        fields=["name", "last_name"], order_by="name", page_length=1, start=1)
+    assert next_page and len(next_page) == 1 and next_page[0].name != page[0].name
 
     frappe.db.savepoint("pilot_employee_rollback")
     frappe.db.set_value("Employee", EMPLOYEE, "middle_name", "ROLLBACK-MARKER")
@@ -86,7 +99,8 @@ def run():
     with ThreadPoolExecutor(max_workers=4) as executor:
         identifiers = list(executor.map(reserve, range(12)))
     assert len(set(identifiers)) == 12
-    return dict(result="passed", employee=EMPLOYEE, concurrency_identifiers=12)
+    return dict(result="passed", employee=EMPLOYEE, concurrency_identifiers=12,
+        database=backend[0], sqlserver_major=backend[1])
 
 
 def assert_persistence():

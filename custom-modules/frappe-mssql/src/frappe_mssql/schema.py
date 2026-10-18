@@ -62,6 +62,8 @@ class MSSQLTable(DBTable):
     def alter(self):
         current = {item.name: item for item in frappe.db.get_table_columns_description(self.table_name)}
         for name, column in self.columns.items():
+            if name in frappe.db.DEFAULT_COLUMNS:
+                continue
             if column.fieldtype not in frappe.db.type_map:
                 continue
             if name not in current:

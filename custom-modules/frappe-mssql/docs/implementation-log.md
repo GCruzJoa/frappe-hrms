@@ -19,4 +19,9 @@
 - Esquema inicial: 11 tablas creadas realmente en SQL Server; prueba de Unicode/savepoint satisfactoria y base temporal eliminada.
 - Prueba real con pyodbc 5.3.0 y ODBC 18.6.1.1: parámetros, Unicode, commit, rollback, savepoint, bloqueo, upsert compuesto y NOT IN vacío satisfactorios.
 - SQLGlot se alineó con el requisito existente de Frappe: versión 30.16.0.
-- 17 pruebas unitarias pasaron. Pendientes: imagen final, instalación completa del sitio SQL Server y aceptación funcional.
+- 19 pruebas unitarias pasaron. NOWAIT se verificó con dos conexiones ODBC y un bloqueo real en conflicto.
+- Imagen del piloto construida; sincronización de DocTypes Frappe y hooks de instalación completados, incluyendo resincronización de tablas existentes.
+- Índices por prefijo, unicidad parcial de la cola y validación DISTINCT/ORDER BY cuentan con adaptaciones explícitas.
+- Sitio original comprobado también en navegador: login correcto y escritorio con Frappe HR/ERPNext.
+- Código incorporado al fork `GCruzJoa/frappe-hrms`, rama `codex/frappe-mssql-pilot`; las siguientes revisiones se publican allí.
+- Pendientes: ERPNext/HRMS, construcción pública final y aceptación funcional completa.

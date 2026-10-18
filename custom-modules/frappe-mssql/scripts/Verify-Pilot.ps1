@@ -3,6 +3,9 @@ $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 $compose = @('compose','--project-name','frappe-mssql-pilot','--file','compose.yaml')
 try {
+    $services = @(& docker @compose config --services)
+    $serviceNames = ($services | Sort-Object) -join ','
+    if ($LASTEXITCODE -ne 0 -or $serviceNames -ne 'frappe,redis,sqlserver') { throw 'The isolated pilot must contain only Frappe, Redis and SQL Server.' }
     $settings = @{}
     Get-Content -LiteralPath '.env' | ForEach-Object {
         if ($_ -match '^([A-Z_]+)=(.*)$') { $settings[$Matches[1]] = $Matches[2] }

@@ -1,12 +1,12 @@
-param([switch]$Build)
+param([switch]$Build, [switch]$FromPublicSources)
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 $lockPath = Join-Path (Get-Location) 'versions.lock.json'
 if (!(Test-Path -LiteralPath $lockPath)) { throw 'Missing versions.lock.json: complete the source update and pinning first.' }
 $lock = Get-Content -Raw -LiteralPath $lockPath | ConvertFrom-Json
 $baseTag = $lock.frappe_base.tag
-$baseId = docker image inspect $baseTag --format '{{.Id}}' 2>$null
-if ($LASTEXITCODE -ne 0 -or $baseId -ne $lock.frappe_base.image_id) {
+$baseId = if (!$FromPublicSources) { docker image inspect $baseTag --format '{{.Id}}' 2>$null } else { $null }
+if ($FromPublicSources -or $LASTEXITCODE -ne 0 -or $baseId -ne $lock.frappe_base.image_id) {
     if (!(Test-Path private/source-base.json)) { throw 'Run scripts/Build-SourceBase.ps1 to build the pinned public sources first.' }
     $sourceBase = Get-Content -Raw private/source-base.json | ConvertFrom-Json
     foreach ($app in 'frappe','erpnext','hrms') {

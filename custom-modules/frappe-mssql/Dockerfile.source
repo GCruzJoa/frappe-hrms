@@ -3,5 +3,9 @@ USER frappe
 COPY --chown=frappe:frappe versions.lock.json /opt/frappe-source/versions.lock.json
 COPY --chown=frappe:frappe scripts/build_source_base.py /opt/frappe-source/build_source_base.py
 WORKDIR /home/frappe
-RUN python /opt/frappe-source/build_source_base.py
+RUN python /opt/frappe-source/build_source_base.py sources
+RUN --mount=type=cache,target=/home/frappe/.cache,uid=1000,gid=1000 python /opt/frappe-source/build_source_base.py framework
+RUN --mount=type=cache,target=/home/frappe/.cache,uid=1000,gid=1000 python /opt/frappe-source/build_source_base.py erpnext
+RUN --mount=type=cache,target=/home/frappe/.cache,uid=1000,gid=1000 python /opt/frappe-source/build_source_base.py hrms
+RUN --mount=type=cache,target=/home/frappe/.cache,uid=1000,gid=1000 python /opt/frappe-source/build_source_base.py finalize
 WORKDIR /home/frappe/frappe-bench

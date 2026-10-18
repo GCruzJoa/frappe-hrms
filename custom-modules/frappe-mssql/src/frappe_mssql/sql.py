@@ -38,12 +38,15 @@ def _render(expression, utc_offset_minutes=0):
     # MySQL FOR UPDATE must retain its locking semantics, especially for tabSeries.
     for select in expression.find_all(exp.Select):
         if select.args.get("locks"):
+            hints = [exp.Var(this="UPDLOCK"), exp.Var(this="HOLDLOCK")]
             for lock in select.args["locks"]:
-                if not lock.args.get("update") or lock.args.get("wait") is not None:
+                if not lock.args.get("update") or lock.args.get("wait") is False:
                     raise UnsupportedSQL("Unsupported locking read variant")
+                if lock.args.get("wait") is True:
+                    hints.append(exp.Var(this="NOWAIT"))
             select.set("locks", None)
             for table in select.find_all(exp.Table):
-                table.set("hints", [exp.WithTableHint(expressions=[exp.Var(this="UPDLOCK"), exp.Var(this="HOLDLOCK")])])
+                table.set("hints", [exp.WithTableHint(expressions=[hint.copy() for hint in hints])])
     if isinstance(expression, exp.Insert) and (expression.args.get("conflict") or expression.args.get("ignore") or expression.args.get("overwrite")):
         return _render_upsert(expression)
     return expression.sql(dialect="tsql", identify=True, unsupported_level=ErrorLevel.RAISE)

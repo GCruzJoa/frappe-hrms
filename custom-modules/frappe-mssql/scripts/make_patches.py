@@ -91,7 +91,7 @@ def generate(upstream, output, app="frappe"):
             source = replace_once(source, 'db_type in ("mariadb", "postgres", "sqlite")', 'db_type in ("mariadb", "postgres", "sqlite", "mssql")')
             source = replace_once(source, 'self.is_mariadb = db_type == "mariadb"', 'self.is_mariadb = db_type in ("mariadb", "mssql")  # intermediate query syntax')
             source = replace_once(source, 'self.query.limit(-1 if self.is_sqlite else MAX_LIMIT)', 'self.query.limit(-1 if self.is_sqlite else (9223372036854775807 if db_type == "mssql" else MAX_LIMIT))')
-            source = replace_once(source, '\t\t\t\tself.is_postgres\n\t\t\t\tand is_select\n\t\t\t\tand distinct', '\t\t\t\t(self.is_postgres or self.db.db_type == "mssql")\n\t\t\t\tand is_select\n\t\t\t\tand distinct')
+            source = replace_once(source, '\t\t\t\tself.is_postgres\n\t\t\t\tand is_select\n\t\t\t\tand distinct', '\t\t\t\t(self.is_postgres or db_type == "mssql")\n\t\t\t\tand is_select\n\t\t\t\tand distinct')
             source = source.replace('because PostgreSQL requires them to ', 'because this SQL dialect requires them to ')
         elif relative == "frappe/database/database.py":
             source = replace_once(source, '\t\tquery = IFNULL_PATTERN.sub("coalesce(", query.strip())', '\t\tquery = query.strip() if self.db_type == "mssql" else IFNULL_PATTERN.sub("coalesce(", query.strip())')

@@ -159,6 +159,24 @@
  
  			self.query = self.query.offset(offset)
  
+@@ -375,7 +375,7 @@
+ 
+ 		if order_by:
+ 			if not (
+-				self.is_postgres
++				(self.is_postgres or db_type == "mssql")
+ 				and is_select
+ 				and distinct
+ 				and not self._can_apply_distinct_order_by(order_by)
+@@ -384,7 +384,7 @@
+ 			else:
+ 				warnings.warn(
+ 					(
+-						"ORDER BY fields have been ignored because PostgreSQL requires them to "
++						"ORDER BY fields have been ignored because this SQL dialect requires them to "
+ 						"appear in the SELECT list when using with DISTINCT"
+ 					),
+ 					UserWarning,
 --- a/frappe/database/sequence.py
 +++ b/frappe/database/sequence.py
 @@ -152,7 +152,7 @@

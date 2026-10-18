@@ -4,12 +4,13 @@ Estado durante la implementación; actualizar con resultados reales antes de ent
 
 | Capacidad | Estado | Evidencia / límite |
 |---|---|---|
-| Parámetros, Unicode, listas y paginación SQL | Verificado en pruebas unitarias | 17 casos del paquete |
-| Bloqueos y upsert de credenciales | Verificado mediante ODBC real | Prueba aislada del adaptador; login completo pendiente |
+| Parámetros, Unicode, listas y paginación SQL | Verificado en pruebas unitarias | 19 casos del paquete |
+| Bloqueos, NOWAIT y upsert de credenciales | Verificado mediante ODBC real | Dos conexiones con bloqueo en conflicto; login completo pendiente |
 | Esquema inicial de Frappe | Verificado en SQL Server 2025 | 11 tablas; base de prueba eliminada al terminar |
 | Unicode y savepoints del servidor | Verificado en SQL Server 2025 | Prueba con José Peña y María |
 | Actualización del entorno MariaDB | Verificada | Migraciones/build completados; HTTP 200 y autenticación correctos |
-| Instalación completa de las tres aplicaciones en SQL Server | Pendiente | Requiere completar la imagen del piloto |
+| Imagen del piloto y sincronización Frappe | Verificadas | Construcción, resincronización de DocTypes y hooks completos |
+| Instalación completa de las tres aplicaciones en SQL Server | En curso | ERPNext/HRMS; no se acredita por instalar Frappe |
 | Login, empresa y empleados | Pendiente | Verificación de ORM y navegador |
 | Permisos y numeración concurrente | Pendiente | Pruebas de aceptación del sitio |
 | Migraciones repetidas y reinicio | Pendiente | Verify-Pilot.ps1 |

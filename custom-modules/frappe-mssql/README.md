@@ -6,7 +6,9 @@ por commit y los cambios de integración se distribuyen como parches verificable
 
 ## Estado
 
-La instalación y los criterios de aceptación se están implementando. Consultar
+La imagen del piloto se construyó y Frappe completó la sincronización de su
+esquema y hooks de instalación en SQL Server. ERPNext/HRMS y los criterios de
+aceptación completos se están verificando. Consultar
 `docs/compatibility.md` y `docs/implementation-log.md` para distinguir las pruebas
 realizadas de las comprobaciones pendientes. La existencia de un adaptador o de
 una imagen construida no acredita el funcionamiento completo de HRMS.
@@ -25,9 +27,11 @@ Docker Desktop en Linux/x86_64; al menos 3.5 GiB de memoria disponible para el
 piloto además del consumo del entorno existente. SQL Server Developer se utiliza
 para desarrollo. Las credenciales se generan en `.env`, excluido de Git.
 
-Tras completar la actualización, generar `versions.lock.json`, la imagen local
-registrada y los parches contra esos mismos commits. No usar una imagen etiquetada
-`latest` como sustituto de las versiones registradas.
+Las revisiones y los parches ya están registrados. En una máquina nueva, desde
+este directorio ejecutar primero `./scripts/Build-SourceBase.ps1` para construir
+las aplicaciones desde los commits públicos fijados. Este flujo está en
+validación. En la máquina de desarrollo también puede utilizarse el snapshot
+local registrado. No sustituir las versiones registradas por una imagen `latest`.
 
 ```powershell
 ./scripts/Start-Pilot.ps1 -Build
@@ -35,6 +39,9 @@ docker compose --project-name frappe-mssql-pilot --file compose.yaml logs --tail
 ./scripts/Verify-Pilot.ps1
 ./scripts/Stop-Pilot.ps1
 ```
+
+`Start-Pilot.ps1 -Build -FromPublicSources` selecciona explícitamente la imagen
+construida desde fuentes públicas, incluso si existe el snapshot privado local.
 
 Web: `http://localhost:18000`; SQL Server: `localhost,14333`; Socket.IO: puerto
 `19000`. Los puertos se publican solo en loopback. La verificación detiene los

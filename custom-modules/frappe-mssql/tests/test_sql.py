@@ -66,6 +66,17 @@ def test_for_update_keeps_a_lock_in_sql_server():
     assert values == ["EMP-"]
 
 
+def test_nowait_lock_does_not_silently_wait():
+    sql, values = compile_query("select name from t where name=%s for update nowait", ("locked",))
+    assert "UPDLOCK" in sql and "HOLDLOCK" in sql and "NOWAIT" in sql
+    assert values == ["locked"]
+
+
+def test_skip_locked_requires_its_own_explicit_adaptation():
+    with pytest.raises(UnsupportedSQL):
+        compile_query("select name from t for update skip locked")
+
+
 def test_password_upsert_updates_the_same_composite_key_and_keeps_hash_bound():
     sql, values = compile_query("insert into `__Auth` (doctype,name,fieldname,password,encrypted) values (%s,%s,%s,%s,%s) on duplicate key update password=%s,encrypted=0", ("User", "Administrator", "password", "secret-hash", 0, "new-secret-hash"))
     assert "MERGE" in sql and "HOLDLOCK" in sql

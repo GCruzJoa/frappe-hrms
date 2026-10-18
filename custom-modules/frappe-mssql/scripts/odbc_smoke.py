@@ -35,6 +35,16 @@ try:
     db.sql("UPDATE `tabSeries` SET current=%s WHERE name=%s", (2, "José Peña"))
     db.rollback(save_point="smoke_savepoint")
     assert db.sql("SELECT current FROM `tabSeries` WHERE name=%s FOR UPDATE", ("José Peña",)) == ((1,),)
+    contender = MSSQLDatabase(**settings, cur_db_name=name)
+    try:
+        try:
+            contender.sql("SELECT current FROM `tabSeries` WHERE name=%s FOR UPDATE NOWAIT", ("José Peña",))
+        except frappe.QueryTimeoutError:
+            pass
+        else:
+            raise AssertionError("NOWAIT did not reject a conflicting lock")
+    finally:
+        contender.close()
     db.sql("INSERT INTO `__Auth` (doctype,name,fieldname,password,encrypted) VALUES (%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE password=%s", ("User", "José Peña", "password", "hash-one", 0, "hash-two"))
     db.sql("INSERT INTO `__Auth` (doctype,name,fieldname,password,encrypted) VALUES (%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE password=%s", ("User", "José Peña", "password", "hash-one", 0, "hash-two"))
     assert db.sql("SELECT password FROM `__Auth` WHERE name=%s", ("José Peña",), pluck=True) == ["hash-two"]
