@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "frappe-mssql"
+version = "0.1.0"
+description = "Experimental SQL Server backend for a pinned Frappe HR development environment"
+requires-python = ">=3.14,<3.15"
+dependencies = ["pyodbc==5.3.0", "sqlglot==30.16.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

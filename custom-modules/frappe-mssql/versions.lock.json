@@ -1,0 +1,35 @@
+{
+  "apps": {
+    "frappe": {
+      "commit": "ec6e65cb5a18ecda14364f85a04e8f0b91e59414",
+      "branch": "develop",
+      "dirty_files": []
+    },
+    "erpnext": {
+      "commit": "b365eb695844e1db9a7484df255c428cefe6e57e",
+      "branch": "develop",
+      "dirty_files": []
+    },
+    "hrms": {
+      "commit": "44e80d64686ae07297095930e5102aadaf034bc8",
+      "branch": "develop",
+      "dirty_files": []
+    }
+  },
+  "pyodbc": "5.3.0",
+  "odbc_driver": "18.6.1.1-1",
+  "sqlserver": {
+    "server_version": "17.0.5015.4",
+    "image": "mcr.microsoft.com/mssql/server@sha256:742481d1b1186cccc81220a1eaacef244ca8d0f7d19c8e5c70df8ae541ffbab2",
+    "edition": "Enterprise Developer"
+  },
+  "redis": {
+    "image": "redis@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0"
+  },
+  "sqlglot": "30.16.0",
+  "python": "3.14.8",
+  "frappe_base": {
+    "tag": "local/frappe-hrms:updated-20261018",
+    "image_id": "sha256:a189534260dc0d0342127487dfef187b10716ebb2aff4b219780dea6169d7d99"
+  }
+}

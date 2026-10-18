@@ -1,0 +1,7 @@
+FROM frappe/bench@sha256:68e586a75392629680f70e956739f418f3502c601b2f35e2ee365572f06c923a
+USER frappe
+COPY --chown=frappe:frappe versions.lock.json /opt/frappe-source/versions.lock.json
+COPY --chown=frappe:frappe scripts/build_source_base.py /opt/frappe-source/build_source_base.py
+WORKDIR /home/frappe
+RUN python /opt/frappe-source/build_source_base.py
+WORKDIR /home/frappe/frappe-bench

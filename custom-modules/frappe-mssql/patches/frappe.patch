@@ -1,0 +1,526 @@
+--- a/frappe/automation/doctype/automation_trigger_queue/automation_trigger_queue.py
++++ b/frappe/automation/doctype/automation_trigger_queue/automation_trigger_queue.py
+@@ -55,7 +55,10 @@
+ 	and skip the column: neither can index a virtual column, and CONCAT_WS is not immutable
+ 	enough for a Postgres generated one.
+ 	"""
+-	if frappe.db.db_type == "mariadb":
++	if frappe.db.db_type == "mssql":
++		from frappe_mssql.schema import ensure_queue_dedup_index
++		ensure_queue_dedup_index(TABLE, DEDUP_INDEX, WAITING_STATES)
++	elif frappe.db.db_type == "mariadb":
+ 		_ensure_dedup_column()
+ 		if not frappe.db.has_index(TABLE, DEDUP_INDEX):
+ 			frappe.db.sql_ddl(f"ALTER TABLE `{TABLE}` ADD UNIQUE INDEX `{DEDUP_INDEX}` (`dedup_key`)")
+--- a/frappe/commands/site.py
++++ b/frappe/commands/site.py
+@@ -23,7 +23,7 @@
+ @click.option(
+ 	"--db-type",
+ 	default="mariadb",
+-	type=click.Choice(["mariadb", "postgres", "sqlite"]),
++	type=click.Choice(["mariadb", "postgres", "sqlite", "mssql"]),
+ 	help='Optional "sqlite", "postgres" or "mariadb". Default is "mariadb"',
+ )
+ @click.option("--db-host", help="Database Host")
+--- a/frappe/config.py
++++ b/frappe/config.py
+@@ -69,13 +69,16 @@
+ 
+ 			return PostgresDatabase.default_port
+ 
++		elif db_type == "mssql":
++			return 1433
++
+ 		raise ValueError(f"Unsupported db_type={db_type}")
+ 
+ 	_apply_common_env_overrides(config)
+ 
+ 	config["db_type"] = os.environ.get("FRAPPE_DB_TYPE") or config.get("db_type") or "mariadb"
+ 
+-	if config["db_type"] in ("mariadb", "postgres"):
++	if config["db_type"] in ("mariadb", "postgres", "mssql"):
+ 		config["db_socket"] = os.environ.get("FRAPPE_DB_SOCKET") or config.get("db_socket")
+ 		config["db_host"] = os.environ.get("FRAPPE_DB_HOST") or config.get("db_host") or "127.0.0.1"
+ 		config["db_port"] = int(
+--- a/frappe/core/report/database_storage_usage_by_tables/database_storage_usage_by_tables.py
++++ b/frappe/core/report/database_storage_usage_by_tables/database_storage_usage_by_tables.py
+@@ -16,7 +16,15 @@
+ 
+ 	data = frappe.db.multisql(
+ 		{
+-			"mariadb": """
++			"mssql": """
++				SELECT table_name AS `table`,
++						round(((data_length + index_length) / 1024 / 1024), 2) `size`,
++						round((data_length / 1024 / 1024), 2) as data_size,
++						round((index_length / 1024 / 1024), 2) as index_size
++				FROM information_schema.TABLES
++				WHERE table_schema = DATABASE()
++				ORDER BY (data_length + index_length) DESC;
++			""", "mariadb": """
+ 				SELECT table_name AS `table`,
+ 						round(((data_length + index_length) / 1024 / 1024), 2) `size`,
+ 						round((data_length / 1024 / 1024), 2) as data_size,
+--- a/frappe/database/__init__.py
++++ b/frappe/database/__init__.py
+@@ -13,6 +13,10 @@
+ def setup_database(force, verbose=None, mariadb_user_host_login_scope=None):
+ 	import frappe
+ 
++	if frappe.conf.db_type == "mssql":
++		from frappe_mssql.setup_db import setup_database as setup_mssql
++		return setup_mssql(force, verbose, mariadb_user_host_login_scope)
++
+ 	if frappe.conf.db_type == "mariadb":
+ 		import frappe.database.mariadb.setup_db
+ 
+@@ -30,6 +34,10 @@
+ def bootstrap_database(verbose=None, source_sql=None):
+ 	import frappe
+ 
++	if frappe.conf.db_type == "mssql":
++		from frappe_mssql.setup_db import bootstrap_database as bootstrap_mssql
++		return bootstrap_mssql(verbose, source_sql)
++
+ 	if frappe.conf.db_type == "mariadb":
+ 		import frappe.database.mariadb.setup_db
+ 
+@@ -47,6 +55,10 @@
+ def drop_user_and_database(db_name, db_user):
+ 	import frappe
+ 
++	if frappe.conf.db_type == "mssql":
++		from frappe_mssql.setup_db import drop_user_and_database as drop_mssql
++		return drop_mssql(db_name, db_user)
++
+ 	if frappe.conf.db_type == "mariadb":
+ 		import frappe.database.mariadb.setup_db
+ 
+@@ -63,6 +75,10 @@
+ 
+ def get_db(socket=None, host=None, user=None, password=None, port=None, cur_db_name=None):
+ 	import frappe
++
++	if frappe.conf.db_type == "mssql":
++		from frappe_mssql.database import MSSQLDatabase
++		return MSSQLDatabase(socket, host, user, password, port, cur_db_name)
+ 
+ 	conf = frappe.local.conf
+ 
+@@ -123,6 +139,10 @@
+ 	socket=None, host=None, port=None, user=None, password=None, db_name=None, extra=None, dump=False
+ ):
+ 	import frappe
++
++	if frappe.conf.db_type == "mssql":
++		from frappe_mssql.sql import UnsupportedSQL
++		raise UnsupportedSQL('Use the pilot native SQL Server backup/restore scripts')
+ 
+ 	if frappe.conf.db_type == "mariadb":
+ 		if dump:
+--- a/frappe/database/database.py
++++ b/frappe/database/database.py
+@@ -309,7 +309,7 @@
+ 
+ 		# remove whitespace / indentation from start and end of query
+ 		# and replace ifnull in query with coalesce
+-		query = IFNULL_PATTERN.sub("coalesce(", query.strip())
++		query = query.strip() if self.db_type == "mssql" else IFNULL_PATTERN.sub("coalesce(", query.strip())
+ 
+ 		if not self._conn:
+ 			self.connect()
+--- a/frappe/database/query.py
++++ b/frappe/database/query.py
+@@ -288,7 +288,7 @@
+ 		qb = db.qb
+ 		db_type = db.db_type
+ 
+-		self.is_mariadb = db_type == "mariadb"
++		self.is_mariadb = db_type in ("mariadb", "mssql")  # intermediate query syntax
+ 		self.is_postgres = db_type == "postgres"
+ 		self.is_sqlite = db_type == "sqlite"
+ 		self.user = user or frappe.session.user
+@@ -305,7 +305,7 @@
+ 		self.link_table_aliases = {}
+ 		self.link_table_counts = {}
+ 
+-		assert db_type in ("mariadb", "postgres", "sqlite"), f"unexpected db_type: {db_type}"
++		assert db_type in ("mariadb", "postgres", "sqlite", "mssql"), f"unexpected db_type: {db_type}"
+ 
+ 		if isinstance(table, Table):
+ 			self.table = table
+@@ -353,7 +353,7 @@
+ 			# In MariaDB and SQLite, offset requires limit. MAX_LIMIT overflows SQLite's signed
+ 			# integers, but SQLite reads a negative limit as no limit.
+ 			if not self.is_postgres and not limit:
+-				self.query = self.query.limit(-1 if self.is_sqlite else MAX_LIMIT)
++				self.query = self.query.limit(-1 if self.is_sqlite else (9223372036854775807 if db_type == "mssql" else MAX_LIMIT))
+ 
+ 			self.query = self.query.offset(offset)
+ 
+--- a/frappe/database/sequence.py
++++ b/frappe/database/sequence.py
+@@ -152,7 +152,7 @@
+ 	db.multisql(
+ 		{
+ 			"postgres": f"SELECT SETVAL('\"{scrub(doctype_name + slug)}\"', {next_val}, {is_val_used})",
+-			"mariadb": f"SELECT SETVAL(`{scrub(doctype_name + slug)}`, {next_val}, {is_val_used})",
++			"mssql": f"SELECT SETVAL(`{scrub(doctype_name + slug)}`, {next_val}, {is_val_used})", "mariadb": f"SELECT SETVAL(`{scrub(doctype_name + slug)}`, {next_val}, {is_val_used})",
+ 		}
+ 	)
+ 
+--- a/frappe/desk/doctype/system_console/system_console.py
++++ b/frappe/desk/doctype/system_console/system_console.py
+@@ -78,7 +78,7 @@
+ 				wait_event AS "Progress"
+ 			FROM pg_stat_activity
+ 			WHERE datname = current_database()""",
+-			"mariadb": "show full processlist",
++			"mssql": "show full processlist", "mariadb": "show full processlist",
+ 		},
+ 		as_dict=True,
+ 	)
+--- a/frappe/model/base_document.py
++++ b/frappe/model/base_document.py
+@@ -1302,7 +1302,7 @@
+ 
+ 			column_type = type_map[df.fieldtype][0] or None
+ 
+-			if column_type == "varchar":
++			if column_type in ("varchar", "nvarchar"):
+ 				default_column_max_length = type_map[df.fieldtype][1] or None
+ 				max_length = cint(df.get("length")) or cint(default_column_max_length)
+ 
+--- a/frappe/model/db_query.py
++++ b/frappe/model/db_query.py
+@@ -1324,7 +1324,7 @@
+ 		"""
+ 		from frappe.query_builder.terms import NamedParameterWrapper
+ 
+-		quote_char = "`" if frappe.db.db_type == "mariadb" else '"'
++		quote_char = "`" if frappe.db.db_type in ("mariadb", "mssql") else '"'
+ 		param_wrapper = NamedParameterWrapper()
+ 		sql = criterion.get_sql(
+ 			with_namespace=True, quote_char=quote_char, param_wrapper=param_wrapper, subquery=True
+--- a/frappe/patches/v16_0/hash_oauth_bearer_tokens.py
++++ b/frappe/patches/v16_0/hash_oauth_bearer_tokens.py
+@@ -59,7 +59,19 @@
+ 					WHERE row_num > 1
+ 				)
+ 			""",
+-			"mariadb": """
++			"mssql": """
++				DELETE FROM `tabOAuth Bearer Token`
++				WHERE name IN (
++					SELECT name FROM (
++						SELECT name, ROW_NUMBER() OVER (
++							PARTITION BY refresh_token ORDER BY creation DESC, name DESC
++						) AS row_num
++						FROM `tabOAuth Bearer Token`
++						WHERE refresh_token IS NOT NULL
++					) duplicate_tokens
++					WHERE row_num > 1
++				)
++			""", "mariadb": """
+ 				DELETE FROM `tabOAuth Bearer Token`
+ 				WHERE name IN (
+ 					SELECT name FROM (
+--- a/frappe/query_builder/functions.py
++++ b/frappe/query_builder/functions.py
+@@ -97,7 +97,7 @@
+ 		super().__init__("INSTR", haystack, needle, **kwargs)
+ 
+ 
+-Locate = ImportMapper({db_type_is.MARIADB: Locate, db_type_is.POSTGRES: Strpos, db_type_is.SQLITE: Instr})
++Locate = ImportMapper({db_type_is.MSSQL: Locate, db_type_is.MARIADB: Locate, db_type_is.POSTGRES: Strpos, db_type_is.SQLITE: Instr})
+ 
+ 
+ # for backward compatibility
+@@ -162,7 +162,7 @@
+ 
+ GroupConcat = ImportMapper(
+ 	{
+-		db_type_is.MARIADB: GROUP_CONCAT,
++		db_type_is.MSSQL: GROUP_CONCAT, db_type_is.MARIADB: GROUP_CONCAT,
+ 		db_type_is.POSTGRES: STRING_AGG,
+ 		db_type_is.SQLITE: SQLITE_GROUP_CONCAT,
+ 	}
+@@ -170,7 +170,7 @@
+ 
+ Match = ImportMapper(
+ 	{
+-		db_type_is.MARIADB: MATCH,
++		db_type_is.MSSQL: MATCH, db_type_is.MARIADB: MATCH,
+ 		db_type_is.POSTGRES: TO_TSVECTOR,
+ 		db_type_is.SQLITE: SQLiteFullTextMatch,
+ 	}
+@@ -202,7 +202,7 @@
+ 
+ Timestamp = ImportMapper(
+ 	{
+-		db_type_is.MARIADB: _StandardTimestamp,
++		db_type_is.MSSQL: _StandardTimestamp, db_type_is.MARIADB: _StandardTimestamp,
+ 		db_type_is.POSTGRES: _StandardTimestamp,
+ 		db_type_is.SQLITE: _SQLiteTimestamp,
+ 	}
+@@ -211,7 +211,7 @@
+ 
+ CombineDatetime = ImportMapper(
+ 	{
+-		db_type_is.MARIADB: CustomFunction("TIMESTAMP", ["date", "time"]),
++		db_type_is.MSSQL: CustomFunction("TIMESTAMP", ["date", "time"]), db_type_is.MARIADB: CustomFunction("TIMESTAMP", ["date", "time"]),
+ 		db_type_is.POSTGRES: _PostgresTimestamp,
+ 		db_type_is.SQLITE: _SQLiteTimestamp,
+ 	}
+@@ -266,7 +266,7 @@
+ 
+ DateFormat = ImportMapper(
+ 	{
+-		db_type_is.MARIADB: CustomFunction("DATE_FORMAT", ["date", "format"]),
++		db_type_is.MSSQL: CustomFunction("DATE_FORMAT", ["date", "format"]), db_type_is.MARIADB: CustomFunction("DATE_FORMAT", ["date", "format"]),
+ 		db_type_is.POSTGRES: ToChar,
+ 		db_type_is.SQLITE: _SQLiteDateFormat,
+ 	}
+@@ -305,7 +305,7 @@
+ 
+ UnixTimestamp = ImportMapper(
+ 	{
+-		db_type_is.MARIADB: CustomFunction("unix_timestamp", ["date"]),
++		db_type_is.MSSQL: CustomFunction("unix_timestamp", ["date"]), db_type_is.MARIADB: CustomFunction("unix_timestamp", ["date"]),
+ 		db_type_is.POSTGRES: _PostgresUnixTimestamp,
+ 		db_type_is.SQLITE: _SQLiteUnixTimestamp,
+ 	}
+@@ -342,7 +342,7 @@
+ 
+ DateDiff = ImportMapper(
+ 	{
+-		db_type_is.MARIADB: CustomFunction("DATEDIFF", ["date1", "date2"]),
++		db_type_is.MSSQL: CustomFunction("DATEDIFF", ["date1", "date2"]), db_type_is.MARIADB: CustomFunction("DATEDIFF", ["date1", "date2"]),
+ 		db_type_is.POSTGRES: _PostgresDateDiff,
+ 		db_type_is.SQLITE: _SQLiteDateDiff,
+ 	}
+@@ -415,7 +415,7 @@
+ 
+ JSONExtract = ImportMapper(
+ 	{
+-		db_type_is.MARIADB: _MariaDBJSONExtract,
++		db_type_is.MSSQL: _MariaDBJSONExtract, db_type_is.MARIADB: _MariaDBJSONExtract,
+ 		db_type_is.POSTGRES: lambda field, path, **kw: field.get_json_value(path),
+ 		db_type_is.SQLITE: _SQLiteJSONExtract,
+ 	}
+@@ -423,7 +423,7 @@
+ 
+ JSONValue = ImportMapper(
+ 	{
+-		db_type_is.MARIADB: _MariaDBJSONValue,
++		db_type_is.MSSQL: _MariaDBJSONValue, db_type_is.MARIADB: _MariaDBJSONValue,
+ 		db_type_is.POSTGRES: lambda field, path, **kw: field.get_text_value(path),
+ 		db_type_is.SQLITE: _SQLiteJSONValue,
+ 	}
+@@ -431,7 +431,7 @@
+ 
+ JSONContains = ImportMapper(
+ 	{
+-		db_type_is.MARIADB: _MariaDBJSONContains,
++		db_type_is.MSSQL: _MariaDBJSONContains, db_type_is.MARIADB: _MariaDBJSONContains,
+ 		db_type_is.POSTGRES: lambda target, candidate, **kw: target.contains(candidate),
+ 		db_type_is.SQLITE: _SQLiteJSONContains,
+ 	}
+--- a/frappe/query_builder/utils.py
++++ b/frappe/query_builder/utils.py
+@@ -39,12 +39,14 @@
+ 	MARIADB = "mariadb"
+ 	POSTGRES = "postgres"
+ 	SQLITE = "sqlite"
++	MSSQL = "mssql"
+ 
+ 
+ DB_TYPE_MAP = {
+ 	db_type_is.MARIADB: MariaDB,
+ 	db_type_is.POSTGRES: Postgres,
+ 	db_type_is.SQLITE: SQLite,
++	db_type_is.MSSQL: MariaDB,
+ }
+ 
+ assert set(DB_TYPE_MAP) == set(db_type_is), "DB_TYPE_MAP must map every db_type_is member to a builder"
+@@ -70,6 +72,9 @@
+ 	Args:
+ 	        type_of_db: string value of the db used
+ 	"""
++	if type_of_db == "mssql":
++		from frappe_mssql.builder import MSSQL
++		return MSSQL
+ 	return DB_TYPE_MAP[db_type_is(type_of_db)]
+ 
+ 
+--- a/frappe/tests/test_dashboard_connections.py
++++ b/frappe/tests/test_dashboard_connections.py
+@@ -285,7 +285,7 @@
+ 
+ 
+ def sleep_past_the_timeout(*args, **kwargs):
+-	frappe.db.multisql({"mariadb": "select sleep(1)", "postgres": "select pg_sleep(1)"})
++	frappe.db.multisql({"mssql": "select sleep(1)", "mariadb": "select sleep(1)", "postgres": "select pg_sleep(1)"})
+ 
+ 
+ def create_test_data():
+--- a/frappe/tests/test_db.py
++++ b/frappe/tests/test_db.py
+@@ -75,7 +75,7 @@
+ 			frappe.db.savepoint(savepoint)
+ 			frappe.db.multisql(
+ 				{
+-					"mariadb": "select sleep(10)",
++					"mssql": "select sleep(10)", "mariadb": "select sleep(10)",
+ 					"postgres": "select pg_sleep(10)",
+ 				}
+ 			)
+@@ -301,7 +301,47 @@
+ 		# Using random.choices, picked out a list of 40 keywords for testing
+ 		all_keywords = {
+ 			"sqlite": ["SELECT"],
+-			"mariadb": [
++			"mssql": [
++				"CHARACTER",
++				"DELAYED",
++				"LINES",
++				"EXISTS",
++				"YEAR_MONTH",
++				"LOCALTIME",
++				"BOTH",
++				"MEDIUMINT",
++				"LEFT",
++				"BINARY",
++				"DEFAULT",
++				"KILL",
++				"WRITE",
++				"SQL_SMALL_RESULT",
++				"CURRENT_TIME",
++				"CROSS",
++				"INHERITS",
++				"SELECT",
++				"TABLE",
++				"ALTER",
++				"CURRENT_TIMESTAMP",
++				"XOR",
++				"CASE",
++				"ALL",
++				"WHERE",
++				"INT",
++				"TO",
++				"SOME",
++				"DAY_MINUTE",
++				"ERRORS",
++				"OPTIMIZE",
++				"REPLACE",
++				"HIGH_PRIORITY",
++				"VARBINARY",
++				"HELP",
++				"IS",
++				"CHAR",
++				"DESCRIBE",
++				"KEY",
++			], "mariadb": [
+ 				"CHARACTER",
+ 				"DELAYED",
+ 				"LINES",
+--- a/frappe/tests/test_recorder.py
++++ b/frappe/tests/test_recorder.py
+@@ -98,16 +98,16 @@
+ 	def test_multiple_queries(self):
+ 		queries = [
+ 			{
+-				"mariadb": "SELECT * FROM tabDocType",
++				"mssql": "SELECT * FROM tabDocType", "mariadb": "SELECT * FROM tabDocType",
+ 				"postgres": 'SELECT * FROM "tabDocType"',
+ 				"sqlite": 'SELECT * FROM "tabDocType"',
+ 			},
+ 			{
+-				"mariadb": "SELECT COUNT(*) FROM tabDocType",
++				"mssql": "SELECT COUNT(*) FROM tabDocType", "mariadb": "SELECT COUNT(*) FROM tabDocType",
+ 				"postgres": 'SELECT COUNT(*) FROM "tabDocType"',
+ 				"sqlite": 'SELECT COUNT(*) FROM "tabDocType"',
+ 			},
+-			{"mariadb": "COMMIT", "postgres": "COMMIT", "sqlite": "COMMIT"},
++			{"mssql": "COMMIT", "mariadb": "COMMIT", "postgres": "COMMIT", "sqlite": "COMMIT"},
+ 		]
+ 
+ 		sql_dialect = frappe.db.db_type or "mariadb"
+--- a/frappe/utils/global_search.py
++++ b/frappe/utils/global_search.py
+@@ -222,7 +222,15 @@
+ 		# ignoring duplicate keys for doctype_name
+ 		frappe.db.multisql(
+ 			{
+-				"mariadb": """INSERT INTO `__global_search`
++				"mssql": """INSERT INTO `__global_search`
++				(doctype, name, content, published, title, route)
++				VALUES {}
++				ON DUPLICATE KEY UPDATE
++					content=VALUE(content),
++					published=VALUE(published),
++					title=VALUE(title),
++					route=VALUE(route)
++				""".format(", ".join(batch_values)), "mariadb": """INSERT INTO `__global_search`
+ 				(doctype, name, content, published, title, route)
+ 				VALUES {}
+ 				ON DUPLICATE KEY UPDATE
+@@ -476,7 +484,15 @@
+ 
+ 	frappe.db.multisql(
+ 		{
+-			"mariadb": """INSERT INTO `__global_search`
++			"mssql": """INSERT INTO `__global_search`
++			(`doctype`, `name`, `content`, `published`, `title`, `route`)
++			VALUES (%(doctype)s, %(name)s, %(content)s, %(published)s, %(title)s, %(route)s)
++			ON DUPLICATE key UPDATE
++				`content`=%(content)s,
++				`published`=%(published)s,
++				`title`=%(title)s,
++				`route`=%(route)s
++		""", "mariadb": """INSERT INTO `__global_search`
+ 			(`doctype`, `name`, `content`, `published`, `title`, `route`)
+ 			VALUES (%(doctype)s, %(name)s, %(content)s, %(published)s, %(title)s, %(route)s)
+ 			ON DUPLICATE key UPDATE
+@@ -626,7 +642,7 @@
+ 
+ 		result = frappe.db.multisql(
+ 			{
+-				"mariadb": common_query.format(conditions=mariadb_conditions),
++				"mssql": common_query.format(conditions=mariadb_conditions), "mariadb": common_query.format(conditions=mariadb_conditions),
+ 				"postgres": common_query.format(conditions=postgres_conditions),
+ 				"sqlite": common_query.format(conditions=sqlite_conditions),
+ 			},
+--- a/frappe/utils/password.py
++++ b/frappe/utils/password.py
+@@ -73,12 +73,12 @@
+ 		Auth.doctype, Auth.name, Auth.fieldname, Auth.password, Auth.encrypted
+ 	)
+ 
+-	assert frappe.db.db_type in ("mariadb", "sqlite", "postgres"), (
++	assert frappe.db.db_type in ("mariadb", "sqlite", "postgres", "mssql"), (
+ 		"exactly one db_type branch must build the insert query"
+ 	)
+ 
+ 	# TODO: Simplify this via aliasing methods in `frappe.qb`
+-	if frappe.db.db_type == "mariadb":
++	if frappe.db.db_type in ("mariadb", "mssql"):
+ 		query = query.insert(doctype, name, fieldname, encrypt(pwd), 1).on_duplicate_key_update(
+ 			Auth.password, Values(Auth.password)
+ 		)
+@@ -180,12 +180,12 @@
+ 		Auth.doctype, Auth.name, Auth.fieldname, Auth.password, Auth.encrypted
+ 	)
+ 
+-	assert frappe.db.db_type in ("mariadb", "sqlite", "postgres"), (
++	assert frappe.db.db_type in ("mariadb", "sqlite", "postgres", "mssql"), (
+ 		"exactly one db_type branch must build the insert query"
+ 	)
+ 
+ 	# TODO: Simplify this via aliasing methods in `frappe.qb`
+-	if frappe.db.db_type == "mariadb":
++	if frappe.db.db_type in ("mariadb", "mssql"):
+ 		query = (
+ 			query.insert(doctype, user, fieldname, hashPwd, 0)
+ 			.on_duplicate_key_update(Auth.password, hashPwd)

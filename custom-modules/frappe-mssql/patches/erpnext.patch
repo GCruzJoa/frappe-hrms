@@ -1,0 +1,11 @@
+--- a/erpnext/patches/v16_0/update_serial_batch_entries.py
++++ b/erpnext/patches/v16_0/update_serial_batch_entries.py
+@@ -93,7 +93,7 @@
+ 
+ 	frappe.db.multisql(
+ 		{
+-			"mariadb": get_mariadb_query(condition),
++			"mssql": get_mariadb_query(condition), "mariadb": get_mariadb_query(condition),
+ 			"postgres": get_postgres_query(condition),
+ 		},
+ 		{"last_name": last_name, "upper": upper},

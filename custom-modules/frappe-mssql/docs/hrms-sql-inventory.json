@@ -1,0 +1,95 @@
+{
+  "classification": "portability-candidates-not-confirmed-defects",
+  "entries": [
+    {
+      "file": "hr/doctype/interview/interview.py",
+      "line": 429,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/move_doctype_reports_and_notification_from_hr_to_payroll.py",
+      "line": 9,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/move_tax_slabs_from_payroll_period_to_income_tax_slab.py",
+      "line": 32,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/move_tax_slabs_from_payroll_period_to_income_tax_slab.py",
+      "line": 63,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/move_tax_slabs_from_payroll_period_to_income_tax_slab.py",
+      "line": 73,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/set_company_in_leave_ledger_entry.py",
+      "line": 7,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/set_company_in_leave_ledger_entry.py",
+      "line": 14,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/set_department_for_doctypes.py",
+      "line": 30,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/set_training_event_attendance.py",
+      "line": 12,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/set_training_event_attendance.py",
+      "line": 19,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/updates_for_multi_currency_payroll.py",
+      "line": 41,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/updates_for_multi_currency_payroll.py",
+      "line": 91,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/updates_for_multi_currency_payroll.py",
+      "line": 104,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/updates_for_multi_currency_payroll.py",
+      "line": 116,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/updates_for_multi_currency_payroll.py",
+      "line": 85,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/update_allocate_on_in_leave_type.py",
+      "line": 17,
+      "kind": "sql_ddl"
+    },
+    {
+      "file": "patches/post_install/update_reason_for_resignation_in_employee.py",
+      "line": 12,
+      "kind": "sql"
+    },
+    {
+      "file": "patches/post_install/update_start_end_date_for_old_shift_assignment.py",
+      "line": 11,
+      "kind": "sql"
+    }
+  ]
+}

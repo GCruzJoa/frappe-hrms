@@ -1,0 +1,58 @@
+name: frappe-mssql-pilot
+services:
+  sqlserver:
+    image: ${MSSQL_IMAGE:?Run scripts/Start-Pilot.ps1 to resolve the pinned image}
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Missing SQL Server bootstrap password}
+      MSSQL_MEMORY_LIMIT_MB: "2048"
+    ports:
+      - "127.0.0.1:14333:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    mem_limit: 3g
+    healthcheck:
+      test: ["CMD-SHELL", '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" -b -o /dev/null']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+  redis:
+    image: ${REDIS_IMAGE:?Missing pinned Redis image}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+  frappe:
+    image: local/frappe-mssql:pilot
+    build:
+      context: .
+      args:
+        FRAPPE_BASE_IMAGE: ${FRAPPE_BASE_IMAGE:?Missing updated Frappe snapshot}
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      PILOT_DB_PASSWORD: ${PILOT_DB_PASSWORD:?Missing site database password}
+      PILOT_ADMIN_PASSWORD: ${PILOT_ADMIN_PASSWORD:?Missing administrator password}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:18000:8000"
+      - "127.0.0.1:19000:9000"
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+      - logs:/home/frappe/frappe-bench/logs
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "5", "http://127.0.0.1:8000/api/method/ping"]
+      interval: 20s
+      timeout: 7s
+      retries: 6
+      start_period: 180s
+volumes:
+  mssql-data:
+  sites:
+  logs:

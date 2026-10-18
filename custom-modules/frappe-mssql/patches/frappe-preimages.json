@@ -1,0 +1,24 @@
+{
+  "commit": "ec6e65cb5a18ecda14364f85a04e8f0b91e59414",
+  "files": {
+    "frappe/config.py": "70047184964bd113ff99e5e91eac0f4233299a65254c950b42a0bf3d8a87aab0",
+    "frappe/commands/site.py": "4147df756b6baec811786d86144be054e1dcca38e1906d7d84b582521c502093",
+    "frappe/database/database.py": "548f8fac5b89447203a56b4b634a348efd35877dc6506fd5100742f25891b1fb",
+    "frappe/database/query.py": "3ad93d47dc327ccb3cf1f796349dbf617d845a5afe2c31ea2df736a4802144f9",
+    "frappe/database/sequence.py": "e1e3566b95bde74d122772e3c5540ccf1f6968d649d51dccd4dd202724a25606",
+    "frappe/database/__init__.py": "065f8ac0c6b6be2e1d56afae1877af987a5e8c8979a438c41726f0fb38d13f1f",
+    "frappe/model/base_document.py": "d0e13bf5fbbab544a68ab816dce0980fc76862b964809d62e5577d955eeb3b69",
+    "frappe/model/db_query.py": "adb6421e9ecd95cd9f4364fb30285cefd996d8e0c094c13aa2935948d8d311ab",
+    "frappe/query_builder/functions.py": "7fae39fb0f5e65e51eeda7615086ccb218ff75bc0796f021eb0031b04a5884cf",
+    "frappe/query_builder/utils.py": "896f562c2b643b21f4ef0b6dfbc0abdbd14b232fe4576c4bcd329eac9ea34e35",
+    "frappe/tests/test_dashboard_connections.py": "2e0a88197a84757111b42ea2b12a4344987bb27cea3d5992d3c299cf1378a373",
+    "frappe/tests/test_db.py": "a8e06b8cf8f3ca5091d7d976c1184859cfa99e6a94a8ec49229c7f3da3526dea",
+    "frappe/tests/test_recorder.py": "58987f07ef745520dd0e9d618aeaab4007ac0f42c10196cce5e98882c4fa2d23",
+    "frappe/utils/global_search.py": "bb72566a0983313a2689413e1cc1adb0ba01115e7c0f61be35157b95a54b9ff1",
+    "frappe/utils/password.py": "5d586fdba3573d2a587dbd9cb2585a253e2bc86ce3864932acad7b2d683bd8bf",
+    "frappe/automation/doctype/automation_trigger_queue/automation_trigger_queue.py": "a053bc1222ba84a1498cd58a066d819f8fceea030639e94056db18233144669d",
+    "frappe/core/report/database_storage_usage_by_tables/database_storage_usage_by_tables.py": "4dea857236ac9ce2057440e5a31e46e121da408ac6b048e9d92a45f54fba79af",
+    "frappe/desk/doctype/system_console/system_console.py": "58d96e1d3240b5539b692d34edbbc8802901ce06036d7e20c9368ac877838f9b",
+    "frappe/patches/v16_0/hash_oauth_bearer_tokens.py": "67b706ccdca324c2cc43b6b0fb6754f2e1530a50e6178a0bb7cac94d412af4a5"
+  }
+}

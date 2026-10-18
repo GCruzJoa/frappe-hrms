@@ -1,0 +1,6 @@
+{
+  "commit": "b365eb695844e1db9a7484df255c428cefe6e57e",
+  "files": {
+    "erpnext/patches/v16_0/update_serial_batch_entries.py": "0f700fa6810ba4b5c0bce4011452e29e43677dbc40e49ba58b716409c310cb61"
+  }
+}
