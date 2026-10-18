@@ -5,7 +5,7 @@ $compose = @('compose','--project-name','frappe-mssql-pilot','--file','compose.y
 & docker @compose exec -T sqlserver mkdir -p /var/opt/mssql/backup
 if ($LASTEXITCODE -ne 0) { throw 'Could not create the native backup directory.' }
 $arguments = if ($VerifyRestore) { '{"verify_restore":true}' } else { '{}' }
-& docker @compose exec -T frappe bench --site mssql.localhost execute frappe_mssql.backup.run --kwargs $arguments
+& docker @compose exec -T frappe /home/frappe/frappe-bench/env/bin/python -m frappe_mssql.run_site backup.run --kwargs $arguments
 if ($LASTEXITCODE -ne 0) { throw 'Native backup or restore verification failed.' }
 $backupDir = Join-Path (Get-Location) ('private\backups\' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ'))
 New-Item -ItemType Directory -Force -Path $backupDir | Out-Null

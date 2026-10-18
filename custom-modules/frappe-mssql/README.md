@@ -6,12 +6,16 @@ por commit y los cambios de integración se distribuyen como parches verificable
 
 ## Estado
 
-La imagen del piloto se construyó y Frappe completó la sincronización de su
-esquema y hooks de instalación en SQL Server. ERPNext/HRMS y los criterios de
-aceptación completos se están verificando. Consultar
-`docs/compatibility.md` y `docs/implementation-log.md` para distinguir las pruebas
-realizadas de las comprobaciones pendientes. La existencia de un adaptador o de
-una imagen construida no acredita el funcionamiento completo de HRMS.
+Piloto funcional verificado el 18 de octubre de 2026: instalación nueva de
+Frappe, ERPNext y HRMS 17 en SQL Server 2025, login, empresa de prueba y alta,
+consulta y edición de empleados desde la interfaz. Pasaron permisos básicos,
+rollback ante un error real, numeración concurrente, dos migraciones, reinicio
+y respaldo/restauración nativos. La instalación original de MariaDB se actualizó
+y conserva su funcionamiento. El piloto se entrega detenido con sus volúmenes.
+
+Los resultados y sus límites están en `docs/acceptance-results.md` y
+`docs/compatibility.md`. No se certifica la cobertura completa de HRMS ni su uso
+en producción.
 
 ## Organización
 
@@ -23,18 +27,20 @@ una imagen construida no acredita el funcionamiento completo de HRMS.
 
 ## Requisitos y operación
 
-Docker Desktop en Linux/x86_64; al menos 3.5 GiB de memoria disponible para el
+PowerShell 7 y Docker Desktop en Linux/x86_64; al menos 3.5 GiB de memoria disponible para el
 piloto además del consumo del entorno existente. SQL Server Developer se utiliza
 para desarrollo. Las credenciales se generan en `.env`, excluido de Git.
 
 Las revisiones y los parches ya están registrados. En una máquina nueva, desde
 este directorio ejecutar primero `./scripts/Build-SourceBase.ps1` para construir
-las aplicaciones desde los commits públicos fijados. Este flujo está en
-validación. En la máquina de desarrollo también puede utilizarse el snapshot
-local registrado. No sustituir las versiones registradas por una imagen `latest`.
+las aplicaciones desde los commits públicos fijados. Este flujo se completó y
+se utilizó para instalar el sitio desde cero. En la máquina de desarrollo
+también puede utilizarse el snapshot local registrado. No sustituir las
+versiones registradas por una imagen `latest`.
 
 ```powershell
-./scripts/Start-Pilot.ps1 -Build
+./scripts/Build-SourceBase.ps1
+./scripts/Start-Pilot.ps1 -Build -FromPublicSources
 docker compose --project-name frappe-mssql-pilot --file compose.yaml logs --tail 100 frappe
 ./scripts/Verify-Pilot.ps1
 ./scripts/Stop-Pilot.ps1
@@ -47,6 +53,16 @@ Web: `http://localhost:18000`; SQL Server: `localhost,14333`; Socket.IO: puerto
 `19000`. Los puertos se publican solo en loopback. La verificación detiene los
 contenedores al finalizar; `-KeepRunning` permite conservarlos explícitamente.
 `Stop-Pilot.ps1` conserva los volúmenes y no modifica los servicios originales.
+Para reanudar esta instalación existente basta `./scripts/Start-Pilot.ps1`;
+el primer arranque de una instalación nueva puede tardar hasta veinte minutos.
+La cuenta web es `Administrator`, con `PILOT_ADMIN_PASSWORD` de `.env`.
+
+`Verify-Pilot.ps1` prepara una empresa y empleados ficticios mediante el
+asistente oficial y el ORM. Comprueba búsqueda, paginación, permisos, error y
+rollback, numeración concurrente, migra dos veces, reinicia y verifica la
+restauración de un respaldo. La prueba manual de navegador está documentada
+por separado. Una instalación incompleta requiere inspección: el arranque no
+elimina automáticamente sus datos.
 
 El cifrado ODBC está habilitado. El perfil local acepta el certificado
 autogenerado del servidor mediante `mssql_trust_server_certificate`; cualquier
@@ -79,6 +95,10 @@ $env:PYTHONPATH = Join-Path (Get-Location) 'src'
 Las consultas conservan parámetros separados de sus valores. La traducción usa
 un árbol SQL; los bloqueos y upserts cuentan con adaptaciones explícitas. Los
 comandos no representables deben fallar y recibir una adaptación comprobada.
+La conexión usa el control de transacciones de ODBC, aislamiento READ COMMITTED
+y READ_COMMITTED_SNAPSHOT en la base. Las lecturas con `FOR UPDATE` se traducen
+a `UPDLOCK,HOLDLOCK`; no se promete equivalencia general con REPEATABLE READ de
+otros motores. Las operaciones fuera de cobertura se enumeran en la matriz.
 
 Los parches se rechazan si cambia un commit o el hash de un archivo original.
 Actualizar las aplicaciones exige regenerar y revisar los parches y repetir

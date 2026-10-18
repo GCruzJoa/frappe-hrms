@@ -1,61 +1,57 @@
 # Estado de continuación — 2026-10-18
 
-Repositorio principal solicitado: `https://github.com/GCruzJoa/frappe-hrms`, rama
-`codex/frappe-mssql-pilot`, basada en `develop` del fork. El repositorio separado
-`GCruzJoa/frappe-mssql` conserva la primera entrega; los próximos cambios se
-publican en el fork de HRMS.
+Repositorio principal: https://github.com/GCruzJoa/frappe-hrms, rama
+codex/frappe-mssql-pilot, basada en develop del fork. El remoto upstream apunta
+a https://github.com/frappe/hrms.git. Las personalizaciones están en
+custom-modules/frappe-mssql; el repositorio separado GCruzJoa/frappe-mssql
+conserva únicamente la primera entrega histórica.
 
-## Comprobado
+## Trabajo completado
 
-- Actualización original completada con `bench update`, sin reset/force, con
-  respaldo previo completo y snapshot exportado. Sitio MariaDB original activo.
-- Revisiones exactas en `versions.lock.json`; los parches validan commit y hashes.
-- Imagen `local/frappe-mssql:pilot` construida con ODBC 18.6.1.1 y pyodbc 5.3.0.
-- 17 pruebas unitarias y prueba real ODBC aprobadas. Esta última incluye Unicode
-  largo, commit/rollback encadenados, savepoints, bloqueos y upsert compuesto.
-- La sincronización del esquema Frappe avanzó hasta las tareas posteriores a
-  DocTypes. Se adaptaron índices por prefijo y unicidad parcial de la cola.
+- Sitio original MariaDB actualizado con bench update, sin reset/force, con
+  respaldo de base/archivos/configuración y snapshot exportado antes de migrar.
+  Login API y navegador verificados. Se conserva activo.
+- Construcción pública de Frappe, ERPNext y HRMS fijados; instalación nueva de
+  las tres aplicaciones en SQL Server 2025 y adaptador independiente integrado
+  mediante parches que validan commit y hashes.
+- Veintitrés pruebas unitarias y prueba ODBC real aprobadas, incluidas precisión,
+  bloqueos, conexiones reutilizadas, transacciones y secuencias.
+- Aceptación funcional aprobada: empresa, empleados, permisos básicos, rollback
+  ante error, numeración concurrente, dos migraciones, reinicio y restauración
+  nativa de base/archivos. Ver acceptance-results.md.
+- Navegador: login, alta de Lucía Núñez y edición/consulta de Lucía María Núñez
+  (HR-EMP-00001). Captura en private/employee-ui.jpg.
+- Piloto detenido al finalizar; volúmenes conservados. No quedan builds ni
+  comandos de desarrollo iniciados por esta tarea en ejecución.
 
-## Punto actual
+## Ubicación y operación
 
-La corrección de DISTINCT/ORDER BY está aplicada y comprobada. Frappe completó
-la resincronización de todos sus DocTypes y sus hooks de instalación. Se adaptó
-NOWAIT y se verificó con dos conexiones y un bloqueo real. Pasan 19 pruebas
-unitarias. ERPNext se está instalando en el contenedor principal del piloto.
+Código activo:
+C:\Users\kafay\Documents\Proyectos\frappe\hrms\custom-modules\frappe-mssql.
+La ubicación anterior
+C:\Users\kafay\Documents\Proyectos\frappe\custom-modules\frappe-mssql
+conserva los artefactos privados; private y .venv del módulo activo son
+junctions ignoradas hacia esos directorios. .env también está ignorado.
+No continuar publicando la copia anterior del código.
 
-No se ha certificado la instalación de ERPNext/HRMS, login del piloto, empresa,
-empleados, permisos, migraciones repetidas, reinicio ni backup/restauración.
+Desde el módulo activo, ./scripts/Start-Pilot.ps1 reanuda los volúmenes;
+./scripts/Verify-Pilot.ps1 verifica y detiene, y ./scripts/Stop-Pilot.ps1
+detiene sin eliminar volúmenes. Para reconstruir desde fuentes públicas usar
+Build-SourceBase.ps1 y Start-Pilot.ps1 -Build -FromPublicSources.
+Web localhost:18000; socket 19000; SQL Server localhost,14333.
 
-La reconstrucción pública `Dockerfile.source` está en curso. El primer intento
-completó dependencias pero falló al suponer que Bench usa un remoto `origin`;
-se corrigió para los remotos reales y se dividió en fases con cachés. El flujo
-todavía debe terminar y validarse. El respaldo/restauración de archivos se
-amplió y también necesita ejecutarse.
+No recrear ni eliminar automáticamente las bases. Los marcadores
+.core-created y .hrms-installed corresponden a la instalación completa.
+Las credenciales están exclusivamente en .env y la configuración privada.
 
-## Entorno local y continuación
+## Próximas etapas opcionales
 
-El código activo está en el fork local:
-`C:\Users\kafay\Documents\Proyectos\frappe\hrms\custom-modules\frappe-mssql`.
-Se continúa trabajando y publicando desde ese directorio. La ubicación anterior
-`C:\Users\kafay\Documents\Proyectos\frappe\custom-modules\frappe-mssql`
-conserva los artefactos privados; los directorios locales `private` y `.venv`
-del módulo activo son junctions ignoradas por Git/Docker hacia esos artefactos.
-El `.env` local está copiado e ignorado. No editar ni publicar la copia anterior
-del código como repositorio principal.
+No queda trabajo pendiente de los recorridos de esta primera entrega. La
+matriz de compatibilidad registra cobertura parcial y casos no implementados.
+Migración de datos desde MariaDB, producción y cobertura completa de nómina,
+asistencia, permisos e informes requieren una etapa posterior.
 
-Los volúmenes `frappe-mssql-pilot_*` conservan la instalación incompleta. No
-recrear bases automáticamente ni tocar el sitio original. La marca
-`.core-created` existe después de completar los hooks del núcleo. Las
-herramientas y logs de diagnóstico están en `private/`; el restablecimiento de
-sitios incompletos se niega a borrar un sitio con ese marcador.
-La configuración y contraseñas están exclusivamente en `.env` ignorado.
-
-1. Continuar la instalación de ERPNext/HRMS y revisar su log.
-2. Completar la construcción de fuentes públicas y comprobar sus revisiones.
-3. Conservar las versiones fijadas al corregir nuevas incompatibilidades.
-4. Corregir incompatibilidades explícitas; no omitir hooks ni sustituir motores.
-5. Validar instalación nueva desde cero, criterios de aceptación y navegador.
-6. Detener los contenedores temporales conservando volúmenes al terminar, salvo
-   petición explícita de dejarlos activos. Conservar el sitio original activo.
-
-Actualizar este registro con resultados reales antes de la entrega final.
+Actualizar upstream no actualiza automáticamente los commits de la imagen:
+cualquier cambio de versions.lock.json exige regenerar/revisar los parches y
+repetir construcción, instalación nueva y aceptación. Mantener código, base y
+archivos del mismo respaldo si es necesario recuperar el sitio original.

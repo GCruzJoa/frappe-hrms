@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 
 SITE = "mssql.localhost"
 BENCH = Path("/home/frappe/frappe-bench")
@@ -18,6 +19,10 @@ def bench(*args):
 
 
 sites = BENCH / "sites"
+assets = sites / "assets"
+assets.mkdir(exist_ok=True)
+for manifest in Path("/opt/frappe-mssql/built-assets").glob("*.json"):
+    shutil.copy2(manifest, assets / manifest.name)
 config_path = sites / "common_site_config.json"
 config = json.loads(config_path.read_text()) if config_path.exists() else {}
 config.update(db_type="mssql", db_host="sqlserver", db_port=1433,

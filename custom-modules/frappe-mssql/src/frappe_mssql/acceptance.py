@@ -17,13 +17,30 @@ def _pilot_only():
 def _employee(name, first_name="María", last_name="Peña"):
     doc = frappe.get_doc(dict(doctype="Employee", name=name, first_name=first_name,
         last_name=last_name, gender="Female", date_of_birth="1990-01-01",
-        date_of_joining="2024-01-01", status="Active", company=COMPANY))
+        date_of_joining="2024-01-01", status="Active", company=COMPANY,
+        current_address="Dirección ficticia: Niño Peña"))
     doc.insert(set_name=name)
     return doc
 
 
+def prepare_setup():
+    _pilot_only()
+    if not frappe.is_setup_complete():
+        from frappe.desk.page.setup_wizard.setup_wizard import setup_complete
+        year = date.today().year
+        result = setup_complete(dict(language="English", country="Dominican Republic",
+            timezone="America/Santo_Domingo", currency="DOP", company_name=COMPANY,
+            company_abbr="MSP", fy_start_date=f"{year}-01-01", fy_end_date=f"{year}-12-31",
+            chart_of_accounts="Standard", enable_telemetry=False,
+            allow_recording_first_session=False))
+        assert result and result.get("status") == "ok" and frappe.is_setup_complete(), "The official setup wizard did not complete"
+        frappe.db.commit()
+    return dict(result="passed", company=COMPANY)
+
+
 def run():
     _pilot_only()
+    prepare_setup()
     backend = frappe.db.native("SELECT DB_NAME(),CAST(SERVERPROPERTY('ProductMajorVersion') AS int)")[0]
     assert backend[0] == "frappe_pilot" and backend[1] == 17
     assert {"frappe", "erpnext", "hrms"} <= set(frappe.get_installed_apps())
@@ -42,6 +59,7 @@ def run():
         _employee(second_employee, first_name="Ángel")
     employee = frappe.get_doc("Employee", EMPLOYEE)
     assert employee.first_name == "María" and employee.last_name == "Peña"
+    assert employee.current_address == "Dirección ficticia: Niño Peña"
     employee.middle_name = "José"
     employee.save()
     frappe.db.commit()
@@ -55,8 +73,18 @@ def run():
 
     frappe.db.savepoint("pilot_employee_rollback")
     frappe.db.set_value("Employee", EMPLOYEE, "middle_name", "ROLLBACK-MARKER")
-    frappe.db.rollback(save_point="pilot_employee_rollback")
+    try:
+        # Force a real primary-key error after a successful write, then recover
+        # the entire operation rather than merely undoing the rejected statement.
+        frappe.db.sql("UPDATE tabEmployee SET name=%s WHERE name=%s", (EMPLOYEE, second_employee))
+    except Exception as error:
+        if not frappe.db.is_duplicate_entry(error):
+            raise
+        frappe.db.rollback(save_point="pilot_employee_rollback")
+    else:
+        raise AssertionError("SQL Server accepted a duplicate employee identifier")
     assert frappe.db.get_value("Employee", EMPLOYEE, "middle_name") == "José"
+    assert frappe.db.exists("Employee", second_employee)
     frappe.db.commit()
 
     username = "pilot-no-access@example.invalid"
@@ -86,6 +114,7 @@ def run():
         frappe.init(site=site, sites_path=sites_path)
         frappe.connect()
         try:
+            frappe.db.native("SET LOCK_TIMEOUT 15000")
             from frappe.model.naming import getseries
             value = getseries("MSSQL-PILOT-SERIES-", 5)
             frappe.db.commit()

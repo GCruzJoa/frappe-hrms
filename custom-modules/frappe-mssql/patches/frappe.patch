@@ -12,6 +12,20 @@
  		_ensure_dedup_column()
  		if not frappe.db.has_index(TABLE, DEDUP_INDEX):
  			frappe.db.sql_ddl(f"ALTER TABLE `{TABLE}` ADD UNIQUE INDEX `{DEDUP_INDEX}` (`dedup_key`)")
+--- a/frappe/cache_manager.py
++++ b/frappe/cache_manager.py
+@@ -231,6 +231,11 @@
+ 	):
+ 		return
+ 
++	if frappe.db.db_type == "mssql":
++		counts = frappe.db.get_table_counts()
++		frappe.cache.set_value("information_schema:counts", counts)
++		return counts
++
+ 	if frappe.db.db_type != "sqlite":
+ 		table_name = frappe.qb.Field("table_name").as_("name")
+ 		table_rows = frappe.qb.Field("table_rows").as_("count")
 --- a/frappe/commands/site.py
 +++ b/frappe/commands/site.py
 @@ -23,7 +23,7 @@
@@ -179,7 +193,37 @@
  					UserWarning,
 --- a/frappe/database/sequence.py
 +++ b/frappe/database/sequence.py
-@@ -152,7 +152,7 @@
+@@ -38,6 +38,9 @@
+ 	min_value: int = 0,
+ 	max_value: int = 0,
+ ) -> str:
++	if db.db_type == "mssql":
++		return db.create_sequence(doctype_name, slug=slug, temporary=temporary, check_not_exists=check_not_exists, cycle=cycle, cache=cache, start_value=start_value, increment_by=increment_by, min_value=min_value, max_value=max_value)
++
+ 	sequence_name = scrub(doctype_name + slug)
+ 
+ 	if db.db_type == "sqlite":
+@@ -111,6 +114,9 @@
+ 
+ 
+ def get_next_val(doctype_name: str, slug: str = "_id_seq") -> int:
++	if db.db_type == "mssql":
++		return db.get_next_sequence_val(doctype_name, slug=slug)
++
+ 	if db.db_type == "sqlite":
+ 		return _sqlite_get_next_val(doctype_name, slug)
+ 
+@@ -130,6 +136,9 @@
+ def set_next_val(
+ 	doctype_name: str, next_val: int, *, slug: str = "_id_seq", is_val_used: bool = False
+ ) -> None:
++	if db.db_type == "mssql":
++		return db.set_next_sequence_val(doctype_name, next_val, slug=slug, is_val_used=is_val_used)
++
+ 	if db.db_type == "sqlite":
+ 		sequence_name = scrub(doctype_name + slug)
+ 		# Persist the value even if the sequence row doesn't exist yet (e.g. an
+@@ -152,7 +161,7 @@
  	db.multisql(
  		{
  			"postgres": f"SELECT SETVAL('\"{scrub(doctype_name + slug)}\"', {next_val}, {is_val_used})",
@@ -188,6 +232,26 @@
  		}
  	)
  
+@@ -177,7 +186,8 @@
+ 	created = []
+ 
+ 	for doctype in doctypes:
+-		if scrub(f"{doctype}_id_seq") in existing:
++		sequence_name = db.get_sequence_name(doctype) if db.db_type == "mssql" else scrub(f"{doctype}_id_seq")
++		if sequence_name in existing:
+ 			continue
+ 
+ 		# align past existing rows to avoid name collisions; empty tables fall
+@@ -275,6 +285,9 @@
+ 
+ 
+ def _get_existing_sequences() -> set[str]:
++	if db.db_type == "mssql":
++		return set(db.native("SELECT name FROM sys.sequences WHERE schema_id=SCHEMA_ID('dbo')", pluck=True))
++
+ 	if db.db_type == "postgres":
+ 		rows = db.sql(
+ 			"""SELECT sequence_name FROM information_schema.sequences
 --- a/frappe/desk/doctype/system_console/system_console.py
 +++ b/frappe/desk/doctype/system_console/system_console.py
 @@ -78,7 +78,7 @@
@@ -201,12 +265,21 @@
  	)
 --- a/frappe/model/base_document.py
 +++ b/frappe/model/base_document.py
+@@ -1132,7 +1132,7 @@
+ 				cache_for_dt = link_value_cache.get(doctype, {})
+ 
+ 				# Get cached value with sentinel for miss detection
+-				if frappe.db.db_type == "mariadb" and isinstance(docname, str):
++				if frappe.db.db_type in ("mariadb", "mssql") and isinstance(docname, str):
+ 					cached = cache_for_dt.get(docname, _NOT_IN_CACHE)
+ 					if cached is _NOT_IN_CACHE:
+ 						cached = cache_for_dt.get(docname.casefold(), _NOT_IN_CACHE)
 @@ -1302,7 +1302,7 @@
  
  			column_type = type_map[df.fieldtype][0] or None
  
 -			if column_type == "varchar":
-+			if column_type in ("varchar", "nvarchar"):
++			if column_type == "varchar" or (column_type == "nvarchar" and type_map[df.fieldtype][1] != "max"):
  				default_column_max_length = type_map[df.fieldtype][1] or None
  				max_length = cint(df.get("length")) or cint(default_column_max_length)
  
@@ -221,6 +294,23 @@
  		param_wrapper = NamedParameterWrapper()
  		sql = criterion.get_sql(
  			with_namespace=True, quote_char=quote_char, param_wrapper=param_wrapper, subquery=True
+--- a/frappe/model/document.py
++++ b/frappe/model/document.py
+@@ -1623,12 +1623,12 @@
+ 						# adding str(name) avoids false cache misses that surface as invalid-link errors.
+ 						result_dict[str(row.name)] = row
+ 						# Case-insensitive key for MariaDB compatibility (strings only)
+-						if frappe.db.db_type == "mariadb" and isinstance(row.name, str):
++						if frappe.db.db_type in ("mariadb", "mssql") and isinstance(row.name, str):
+ 							result_dict[row.name.casefold()] = row
+ 
+ 				# Store results in both caches
+ 				for name in names:
+-					if frappe.db.db_type == "mariadb" and isinstance(name, str):
++					if frappe.db.db_type in ("mariadb", "mssql") and isinstance(name, str):
+ 						cached_value = (
+ 							result_dict.get(name)
+ 							or result_dict.get(str(name))
 --- a/frappe/patches/v16_0/hash_oauth_bearer_tokens.py
 +++ b/frappe/patches/v16_0/hash_oauth_bearer_tokens.py
 @@ -59,7 +59,19 @@
@@ -465,6 +555,26 @@
  		]
  
  		sql_dialect = frappe.db.db_type or "mariadb"
+--- a/frappe/utils/connections.py
++++ b/frappe/utils/connections.py
+@@ -53,7 +53,7 @@
+ 	Returns:
+ 		True if the service is reachable, False otherwise.
+ 	"""
+-	if scheme in ("redis", "rediss", "postgres", "mariadb"):
++	if scheme in ("redis", "rediss", "postgres", "mariadb", "mssql"):
+ 		if not hostname or not port:
+ 			return False
+ 
+@@ -87,7 +87,7 @@
+ 	if db_socket := config.get("db_socket"):
+ 		return {db_type: is_open("unix", None, None, db_socket)}
+ 	db_host = config.get("db_host", "127.0.0.1")
+-	db_port = config.get("db_port", 3306 if db_type == "mariadb" else 5432)
++	db_port = config.get("db_port", 1433 if db_type == "mssql" else (3306 if db_type == "mariadb" else 5432))
+ 	return {db_type: is_open(db_type, db_host, db_port, None)}
+ 
+ 
 --- a/frappe/utils/global_search.py
 +++ b/frappe/utils/global_search.py
 @@ -222,7 +222,15 @@

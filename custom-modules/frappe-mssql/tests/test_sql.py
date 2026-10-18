@@ -1,4 +1,5 @@
 from decimal import Decimal
+from datetime import datetime
 
 import pytest
 
@@ -17,6 +18,16 @@ def test_placeholders_inside_strings_identifiers_and_comments_are_not_parameters
     sql, values = compile_query("SELECT '%s', [%(secret)s], %s -- %(secret)s\n", ("Niña",), native=True)
     assert "'%s'" in sql and "[%(secret)s]" in sql and "-- %(secret)s" in sql
     assert values == ["Niña"]
+
+
+def test_native_tsql_does_not_treat_backslash_as_a_quote_escape():
+    sql, values = compile_query(r"SELECT N'C:\', %s", ("Niña",), native=True)
+    assert sql == "SELECT N'C:\\', ?" and values == ["Niña"]
+
+
+def test_mysql_backslash_literal_is_valid_after_tsql_translation():
+    sql, values = compile_query(r"SELECT 'C:\\', %s", ("Niña",))
+    assert "'C:\\'" in sql and values == ["Niña"]
 
 
 def test_named_parameters_are_repeated_in_correct_order():
@@ -75,6 +86,24 @@ def test_nowait_lock_does_not_silently_wait():
 def test_skip_locked_requires_its_own_explicit_adaptation():
     with pytest.raises(UnsupportedSQL):
         compile_query("select name from t for update skip locked")
+
+
+def test_correlated_update_alias_uses_sql_server_from_syntax():
+    sql, values = compile_query("UPDATE `tabLeave Ledger Entry` AS lle SET lle.company=(SELECT company FROM `tabEmployee` WHERE employee=lle.employee) WHERE lle.company IS NULL")
+    assert "UPDATE [lle] SET [company]" in sql
+    assert "FROM [tabLeave Ledger Entry] AS [lle]" in sql
+    assert values == []
+
+
+def test_single_values_remain_text_without_losing_numeric_or_temporal_precision():
+    instant = datetime(2026, 10, 18, 20, 30, 40, 123456)
+    sql, values = compile_query("INSERT INTO tabSingles (doctype,field,value) VALUES (%s,%s,%s),(%s,%s,%s),(%s,%s,%s)",
+        ("Settings", "enabled", True, "Settings", "modified", instant,
+         "Settings", "rate", Decimal("123456789.123456789")))
+    assert values[2] == "1"
+    assert values[5] == "2026-10-18 20:30:40.123456"
+    assert values[8] == "123456789.123456789"
+    assert sql.count("?") == 9
 
 
 def test_password_upsert_updates_the_same_composite_key_and_keeps_hash_bound():

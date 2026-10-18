@@ -1,6 +1,7 @@
 """Experimental SQL Server implementation of Frappe's Database contract."""
 
 from contextlib import contextmanager
+from contextlib import suppress
 from datetime import date, datetime, time
 from decimal import Decimal
 import hashlib
@@ -18,6 +19,12 @@ from .sql import compile_query, quote_identifier as qi, UnsupportedSQL
 
 def _error_number(exc, *numbers):
     return any(re.search(r"\(" + str(number) + r"\)", str(exc)) for number in numbers)
+
+
+def _odbc_parameters(values):
+    # SQL_TIME_STRUCT has no fractional seconds. Bind ISO text so SQL Server's
+    # time(6) conversion retains the full microsecond precision.
+    return [value.isoformat() if isinstance(value, time) else value for value in values]
 
 
 class MSSQLDatabase(Database):
@@ -87,12 +94,25 @@ class MSSQLDatabase(Database):
         connection.execute("SET ANSI_NULLS ON")
         for setting in ("ANSI_PADDING ON", "ANSI_WARNINGS ON", "ARITHABORT ON", "CONCAT_NULL_YIELDS_NULL ON", "NUMERIC_ROUNDABORT OFF"):
             connection.execute("SET " + setting)
-        connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
-        # Frappe expects the first write to remain uncommitted until its commit
-        # callback. Root provisioning on master must remain outside transactions.
+        connection.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+        # Use the driver's transaction API. Mixing autocommit with explicit
+        # BEGIN/COMMIT can retain nested transactions in pooled connections.
+        # RCSI supplies nonblocking ordinary reads; FOR UPDATE remains locked.
         if self.cur_db_name and self.cur_db_name.lower() != "master":
-            connection.execute("BEGIN TRANSACTION")
+            connection.autocommit = False
+            connection.rollback()
         return connection
+
+    def close(self):
+        if self._conn:
+            with suppress(pyodbc.Error):
+                self._conn.rollback()
+        super().close()
+
+    def _clear_cursor(self):
+        if self._cursor:
+            self._cursor.close()
+        self._cursor = self._conn.cursor()
 
     def set_execution_timeout(self, seconds):
         self._conn.timeout = max(0, int(seconds))
@@ -112,26 +132,34 @@ class MSSQLDatabase(Database):
         return query, values
 
     def execute_query(self, query, values=None):
-        command = query.strip().lower().rstrip(";")
+        statement = re.sub(r"\s*/\*\s*FRAPPE_TRACE_ID:\s*[0-9a-f]+\s*\*/\s*$", "", query, flags=re.I).strip().rstrip(";")
+        command = statement.lower()
         if command.startswith("start transaction"):
             if "read only" in command:
                 raise UnsupportedSQL("Read-only transactions are not implemented")
-            sql, args = "IF @@TRANCOUNT = 0 BEGIN TRANSACTION", []
-        elif command in ("commit and chain", "rollback and chain"):
-            operation = command.split()[0].upper()
-            sql, args = f"IF @@TRANCOUNT > 0 {operation} TRANSACTION; BEGIN TRANSACTION", []
-        elif command in ("commit", "rollback"):
-            sql, args = f"IF @@TRANCOUNT > 0 {command.upper()} TRANSACTION", []
+            self._clear_cursor()
+            self._last_query = statement
+            return
+        elif command in ("commit", "commit and chain", "rollback", "rollback and chain"):
+            if command.startswith("commit"):
+                self._conn.commit()
+            else:
+                self._conn.rollback()
+            self._clear_cursor()
+            self._last_query = statement
+            return
         elif command.startswith("savepoint "):
-            sql, args = "SAVE TRANSACTION " + qi(query.split()[-1]), []
+            sql, args = "SAVE TRANSACTION " + qi(statement.split()[-1]), []
         elif command.startswith("rollback to savepoint "):
-            sql, args = "ROLLBACK TRANSACTION " + qi(query.split()[-1]), []
+            savepoint = qi(statement.split()[-1])
+            # SQL Server consumes the target savepoint; Frappe may reuse it.
+            sql, args = f"ROLLBACK TRANSACTION {savepoint}; SAVE TRANSACTION {savepoint}", []
         elif command.startswith("release savepoint "):
             return
         else:
             sql, args = compile_query(query, values, utc_offset_minutes=self._utc_offset_minutes())
         self._last_query = sql
-        return self._cursor.execute(sql, args)
+        return self._cursor.execute(sql, _odbc_parameters(args))
 
     def native(self, query, values=None, *, as_dict=False, pluck=False):
         """Internal T-SQL; retain values as parameters and never dialect-translate."""
@@ -139,7 +167,7 @@ class MSSQLDatabase(Database):
             self.connect()
         sql, args = compile_query(query, values, native=True)
         self._last_query = sql
-        self._cursor.execute(sql, args)
+        self._cursor.execute(sql, _odbc_parameters(args))
         while self._cursor.description is None:
             if not self._cursor.nextset():
                 return []
@@ -179,6 +207,13 @@ class MSSQLDatabase(Database):
 
     def get_tables(self, cached=True):
         return self.native("SELECT name FROM sys.tables WHERE schema_id=SCHEMA_ID('dbo')", pluck=True)
+
+    def get_table_counts(self):
+        rows = self.native("""SELECT t.[name] AS [name],COALESCE(SUM(p.[rows]),0) AS [count]
+            FROM sys.tables t LEFT JOIN sys.partitions p
+            ON p.object_id=t.object_id AND p.index_id IN (0,1)
+            WHERE t.schema_id=SCHEMA_ID('dbo') GROUP BY t.[name]""", as_dict=True)
+        return {row.name.removeprefix("tab"): int(row.count) for row in rows}
 
     def get_db_table_columns(self, table):
         return self.native("SELECT name FROM sys.columns WHERE object_id=OBJECT_ID(%s) ORDER BY column_id", (f"dbo.{qi(table)}",), pluck=True)
@@ -293,15 +328,17 @@ class MSSQLDatabase(Database):
         raise UnsupportedSQL("ON DUPLICATE KEY requires an explicit SQL Server upsert")
 
     def create_sequence(self, name, check_not_exists=False, **kwargs):
-        if any(value for key, value in kwargs.items() if key not in ("start_value", "increment_by", "min_value", "max_value", "cycle", "cache", "slug", "temporary")):
+        if set(kwargs) - {"start_value", "increment_by", "min_value", "max_value", "cycle", "cache", "slug", "temporary"}:
             raise UnsupportedSQL("Unknown sequence options")
         if kwargs.get("temporary") or kwargs.get("slug", "_id_seq") != "_id_seq":
             raise UnsupportedSQL("Temporary or custom-slug sequences require an explicit adaptation")
-        sequence = "seq_" + hashlib.sha256(name.encode()).hexdigest()[:32]
-        if not self.native("SELECT 1 FROM sys.sequences WHERE name=%s", (sequence,)):
+        sequence = self.get_sequence_name(name)
+        exists = self.native("SELECT 1 FROM sys.sequences WHERE name=%s", (sequence,))
+        if exists and not check_not_exists:
+            raise FileExistsError(f"Sequence already exists for {name}")
+        if not exists:
             options = f"START WITH {int(kwargs.get('start_value') or 1)} INCREMENT BY {int(kwargs.get('increment_by') or 1)}"
-            if kwargs.get("min_value"):
-                options += f" MINVALUE {int(kwargs['min_value'])}"
+            options += f" MINVALUE {int(kwargs.get('min_value') or 1)}"
             if kwargs.get("max_value"):
                 options += f" MAXVALUE {int(kwargs['max_value'])}"
             options += " CYCLE" if kwargs.get("cycle") else " NO CYCLE"
@@ -309,14 +346,17 @@ class MSSQLDatabase(Database):
             self.native(f"CREATE SEQUENCE {qi(sequence)} AS bigint {options}")
         return sequence
 
-    def set_next_sequence_val(self, name, value, **kwargs):
-        if kwargs:
-            raise UnsupportedSQL("Additional sequence reset options are not implemented")
+    def set_next_sequence_val(self, name, value, *, slug="_id_seq", is_val_used=False):
+        if slug != "_id_seq":
+            raise UnsupportedSQL("Custom-slug sequences require an explicit adaptation")
         sequence = self.get_sequence_name(name)
-        self.native(f"ALTER SEQUENCE {qi(sequence)} RESTART WITH {int(value) + 1}")
+        increment = self.native("SELECT CAST(increment AS bigint) FROM sys.sequences WHERE name=%s", (sequence,))[0][0]
+        self.native(f"ALTER SEQUENCE {qi(sequence)} RESTART WITH {int(value) + (int(increment) if is_val_used else 0)}")
 
-    def get_next_sequence_val(self, name):
-        sequence = "seq_" + hashlib.sha256(name.encode()).hexdigest()[:32]
+    def get_next_sequence_val(self, name, slug="_id_seq"):
+        if slug != "_id_seq":
+            raise UnsupportedSQL("Custom-slug sequences require an explicit adaptation")
+        sequence = self.get_sequence_name(name)
         return self.native(f"SELECT NEXT VALUE FOR {qi(sequence)}")[0][0]
 
     def get_sequence_name(self, name):

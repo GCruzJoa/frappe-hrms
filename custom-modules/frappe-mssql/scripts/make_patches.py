@@ -72,6 +72,26 @@ def explicit_dialect_entries(source):
     return source
 
 
+def sequence_module(source):
+    bodies = {
+        "create_sequence": "return db.create_sequence(doctype_name, slug=slug, temporary=temporary, check_not_exists=check_not_exists, cycle=cycle, cache=cache, start_value=start_value, increment_by=increment_by, min_value=min_value, max_value=max_value)",
+        "get_next_val": "return db.get_next_sequence_val(doctype_name, slug=slug)",
+        "set_next_val": "return db.set_next_sequence_val(doctype_name, next_val, slug=slug, is_val_used=is_val_used)",
+        "_get_existing_sequences": "return set(db.native(\"SELECT name FROM sys.sequences WHERE schema_id=SCHEMA_ID('dbo')\", pluck=True))",
+    }
+    lines = source.splitlines(keepends=True)
+    inserts = []
+    for node in ast.parse(source).body:
+        if isinstance(node, ast.FunctionDef) and node.name in bodies:
+            position = sum(map(len, lines[:node.body[0].lineno - 1]))
+            inserts.append((position, '\tif db.db_type == "mssql":\n\t\t' + bodies[node.name] + '\n\n'))
+    if len(inserts) != len(bodies):
+        raise RuntimeError("Sequence integration entrypoints changed")
+    for position, text in sorted(inserts, reverse=True):
+        source = source[:position] + text + source[position:]
+    return replace_once(source, '\t\tif scrub(f"{doctype}_id_seq") in existing:', '\t\tsequence_name = db.get_sequence_name(doctype) if db.db_type == "mssql" else scrub(f"{doctype}_id_seq")\n\t\tif sequence_name in existing:')
+
+
 def generate(upstream, output, app="frappe"):
     root = Path(upstream)
     commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
@@ -82,11 +102,16 @@ def generate(upstream, output, app="frappe"):
         source = original
         if relative == "frappe/database/__init__.py":
             source = database_module(source)
+        elif relative == "frappe/database/sequence.py":
+            source = sequence_module(source)
         elif relative == "frappe/commands/site.py":
             source = replace_once(source, 'click.Choice(["mariadb", "postgres", "sqlite"])', 'click.Choice(["mariadb", "postgres", "sqlite", "mssql"])')
         elif relative == "frappe/config.py":
             source = replace_once(source, '\t\traise ValueError(f"Unsupported db_type={db_type}")', '\t\telif db_type == "mssql":\n\t\t\treturn 1433\n\n\t\traise ValueError(f"Unsupported db_type={db_type}")')
             source = replace_once(source, 'config["db_type"] in ("mariadb", "postgres")', 'config["db_type"] in ("mariadb", "postgres", "mssql")')
+        elif relative == "frappe/cache_manager.py":
+            anchor = '\tif frappe.db.db_type != "sqlite":\n\t\ttable_name ='
+            source = replace_once(source, anchor, '\tif frappe.db.db_type == "mssql":\n\t\tcounts = frappe.db.get_table_counts()\n\t\tfrappe.cache.set_value("information_schema:counts", counts)\n\t\treturn counts\n\n' + anchor)
         elif relative == "frappe/database/query.py":
             source = replace_once(source, 'db_type in ("mariadb", "postgres", "sqlite")', 'db_type in ("mariadb", "postgres", "sqlite", "mssql")')
             source = replace_once(source, 'self.is_mariadb = db_type == "mariadb"', 'self.is_mariadb = db_type in ("mariadb", "mssql")  # intermediate query syntax')
@@ -100,12 +125,19 @@ def generate(upstream, output, app="frappe"):
             source = replace_once(source, '\tdb_type_is.SQLITE: SQLite,', '\tdb_type_is.SQLITE: SQLite,\n\tdb_type_is.MSSQL: MariaDB,')
             source = replace_once(source, '\treturn DB_TYPE_MAP[db_type_is(type_of_db)]', '\tif type_of_db == "mssql":\n\t\tfrom frappe_mssql.builder import MSSQL\n\t\treturn MSSQL\n\treturn DB_TYPE_MAP[db_type_is(type_of_db)]')
         elif relative == "frappe/model/base_document.py":
-            source = source.replace('if column_type == "varchar":', 'if column_type in ("varchar", "nvarchar"):')
+            source = replace_once(source, 'if column_type == "varchar":', 'if column_type == "varchar" or (column_type == "nvarchar" and type_map[df.fieldtype][1] != "max"):')
+            source = replace_once(source, 'frappe.db.db_type == "mariadb" and isinstance(docname, str)', 'frappe.db.db_type in ("mariadb", "mssql") and isinstance(docname, str)')
+        elif relative == "frappe/model/document.py":
+            for variable in ("row.name", "name"):
+                source = replace_once(source, f'frappe.db.db_type == "mariadb" and isinstance({variable}, str)', f'frappe.db.db_type in ("mariadb", "mssql") and isinstance({variable}, str)')
         elif relative == "frappe/model/db_query.py":
             source = source.replace('quote_char = "`" if frappe.db.db_type == "mariadb" else', 'quote_char = "`" if frappe.db.db_type in ("mariadb", "mssql") else')
         elif relative == "frappe/utils/password.py":
             source = source.replace('frappe.db.db_type == "mariadb"', 'frappe.db.db_type in ("mariadb", "mssql")')
             source = source.replace('("mariadb", "sqlite", "postgres")', '("mariadb", "sqlite", "postgres", "mssql")')
+        elif relative == "frappe/utils/connections.py":
+            source = replace_once(source, '("redis", "rediss", "postgres", "mariadb")', '("redis", "rediss", "postgres", "mariadb", "mssql")')
+            source = replace_once(source, '3306 if db_type == "mariadb" else 5432', '1433 if db_type == "mssql" else (3306 if db_type == "mariadb" else 5432)')
         elif relative == "frappe/automation/doctype/automation_trigger_queue/automation_trigger_queue.py":
             source = replace_once(source, '\tif frappe.db.db_type == "mariadb":', '\tif frappe.db.db_type == "mssql":\n\t\tfrom frappe_mssql.schema import ensure_queue_dedup_index\n\t\tensure_queue_dedup_index(TABLE, DEDUP_INDEX, WAITING_STATES)\n\telif frappe.db.db_type == "mariadb":')
         # Reviewable per-call branches, never a runtime fallback to another engine.

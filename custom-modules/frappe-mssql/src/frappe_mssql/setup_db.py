@@ -26,6 +26,7 @@ def setup_database(force=False, verbose=False, *args):
             raise FileExistsError(f"SQL Server database {name!r} already exists")
         root.native(f"CREATE DATABASE {qi(name)} COLLATE Latin1_General_100_CI_AI_SC")
         root.native(f"ALTER DATABASE {qi(name)} SET COMPATIBILITY_LEVEL = 170")
+        root.native(f"ALTER DATABASE {qi(name)} SET READ_COMMITTED_SNAPSHOT ON")
         if root.native("SELECT 1 FROM sys.server_principals WHERE name=%s", (user,)):
             raise FileExistsError(f"SQL Server login {user!r} already exists")
         root.native(f"CREATE LOGIN {qi(user)} WITH PASSWORD = {root.escape(password)}, CHECK_POLICY = ON")

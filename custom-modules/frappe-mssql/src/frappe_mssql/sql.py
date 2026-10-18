@@ -5,6 +5,7 @@ duplicate expressions without binding the wrong value to an ODBC placeholder.
 """
 
 from collections.abc import Mapping
+from datetime import date, datetime, time
 import re
 
 import sqlglot
@@ -17,6 +18,42 @@ class UnsupportedSQL(NotImplementedError):
 
 
 PREFIX = "__frappe_mssql_bind_"
+
+
+def _normalize_single_values(expression, parameters):
+    """VALUES infers one type per column; Singles intentionally stores text."""
+    if not isinstance(expression, exp.Insert) or not isinstance(expression.this, exp.Schema):
+        return
+    if expression.this.this.name != "tabSingles":
+        return
+    columns = [column.name for column in expression.this.expressions]
+    rows = expression.args.get("expression")
+    if "value" not in columns or not isinstance(rows, exp.Values):
+        raise UnsupportedSQL("Singles insertion requires explicit columns and VALUES")
+    position = columns.index("value")
+    for row in rows.expressions:
+        value = row.expressions[position]
+        if isinstance(value, exp.Parameter):
+            match = re.fullmatch("@" + PREFIX + r"(\d+)", value.sql(dialect="mysql"))
+            if not match:
+                raise UnsupportedSQL("Unknown Singles value parameter")
+            index = int(match.group(1))
+            item = parameters[index]
+            if item is None or isinstance(item, str):
+                continue
+            if isinstance(item, bool):
+                item = int(item)
+            if isinstance(item, datetime):
+                item = item.isoformat(sep=" ")
+            elif isinstance(item, (date, time)):
+                item = item.isoformat()
+            elif isinstance(item, bytes):
+                item = item.decode("utf-8")
+            parameters[index] = str(item)
+        elif isinstance(value, exp.Literal) and value.is_number:
+            value.replace(exp.Literal.string(value.this))
+        elif not isinstance(value, (exp.Literal, exp.Null)):
+            raise UnsupportedSQL("Computed Singles values require an explicit text representation")
 
 
 def _render(expression, utc_offset_minutes=0):
@@ -35,6 +72,22 @@ def _render(expression, utc_offset_minutes=0):
             return value
         return node
     expression = expression.transform(clock)
+    for update in expression.find_all(exp.Update):
+        target = update.this
+        if not isinstance(target, exp.Table):
+            raise UnsupportedSQL("Unexpected UPDATE target")
+        target_names = {target.name, target.alias_or_name}
+        for assignment in update.expressions:
+            column = assignment.this
+            if isinstance(column, exp.Column) and column.table:
+                if column.table not in target_names:
+                    raise UnsupportedSQL("Updating multiple joined tables requires separate statements")
+                column.set("table", None)
+        if target.alias or target.args.get("joins"):
+            if update.args.get("from_"):
+                raise UnsupportedSQL("An aliased UPDATE with an existing FROM needs an explicit adaptation")
+            update.set("from_", exp.From(this=target.copy()))
+            update.set("this", exp.to_table(target.alias_or_name, quoted=True))
     # MySQL FOR UPDATE must retain its locking semantics, especially for tabSeries.
     for select in expression.find_all(exp.Select):
         if select.args.get("locks"):
@@ -87,7 +140,7 @@ def _render_upsert(expression):
             + update_sql + f" WHEN NOT MATCHED THEN INSERT ({names}) VALUES ({insert_values});")
 
 
-def _pieces(sql):
+def _pieces(sql, *, mysql_escapes=True):
     """Yield (protected, text) for strings, identifiers and SQL comments."""
     i = start = 0
     while i < len(sql):
@@ -123,7 +176,7 @@ def _pieces(sql):
                             continue
                         i += 1
                         break
-                    if sql[i] == "\\" and ch in "'\"":
+                    if mysql_escapes and sql[i] == "\\" and ch in "'\"":
                         i += 2
                     else:
                         i += 1
@@ -137,7 +190,7 @@ def _pieces(sql):
         yield False, sql[start:]
 
 
-def _mark(query, values):
+def _mark(query, values, *, native=False):
     if PREFIX in query:
         raise ValueError("SQL contains a reserved backend marker")
     parameters = []
@@ -170,7 +223,7 @@ def _mark(query, values):
 
     pattern = re.compile(r"%%|%\(([^)]+)\)s|%s")
     marked = "".join(text if protected else pattern.sub(substitute, text)
-                     for protected, text in _pieces(query))
+                     for protected, text in _pieces(query, mysql_escapes=not native))
     if not mapping and consumed != len(positional):
         raise ValueError("Unused positional SQL parameters")
     return marked, parameters
@@ -178,7 +231,7 @@ def _mark(query, values):
 
 def compile_query(query, values=None, *, native=False, utc_offset_minutes=0):
     """Return SQL Server SQL and positional parameters for pyodbc.execute."""
-    marked, params = _mark(str(query), values)
+    marked, params = _mark(str(query), values, native=native)
     if native:
         rendered = marked
     else:
@@ -186,6 +239,7 @@ def compile_query(query, values=None, *, native=False, utc_offset_minutes=0):
             expressions = sqlglot.parse(marked, read="mysql", error_level=ErrorLevel.RAISE)
             if len(expressions) != 1 or expressions[0] is None:
                 raise UnsupportedSQL("Exactly one SQL statement is supported per execution")
+            _normalize_single_values(expressions[0], params)
             rendered = _render(expressions[0], utc_offset_minutes=utc_offset_minutes)
         except SqlglotError as exc:
             # Deliberately do not include query text or bound secrets in errors.
@@ -198,7 +252,7 @@ def compile_query(query, values=None, *, native=False, utc_offset_minutes=0):
         return "?"
 
     result = "".join(text if protected else pattern.sub(replace, text)
-                     for protected, text in _pieces(rendered))
+                     for protected, text in _pieces(rendered, mysql_escapes=False))
     return result, bound
 
 

@@ -6,7 +6,7 @@
 - Se inspeccionó el entorno Frappe/ERPNext/HRMS 17 en Docker.
 - Se puso el sitio en mantenimiento, se deshabilitó el scheduler y se generó un respaldo completo con archivos.
 - Los respaldos, configuraciones y snapshots se conservan bajo `private/`, excluido del control de versiones.
-- Los criterios del piloto siguen pendientes de validación; este registro no acredita compatibilidad completa.
+- Los criterios de esta primera entrega se completaron; la cobertura completa de HRMS sigue fuera del alcance del piloto.
 
 ### Avance comprobado
 
@@ -19,9 +19,15 @@
 - Esquema inicial: 11 tablas creadas realmente en SQL Server; prueba de Unicode/savepoint satisfactoria y base temporal eliminada.
 - Prueba real con pyodbc 5.3.0 y ODBC 18.6.1.1: parámetros, Unicode, commit, rollback, savepoint, bloqueo, upsert compuesto y NOT IN vacío satisfactorios.
 - SQLGlot se alineó con el requisito existente de Frappe: versión 30.16.0.
-- 19 pruebas unitarias pasaron. NOWAIT se verificó con dos conexiones ODBC y un bloqueo real en conflicto.
+- 23 pruebas unitarias pasaron. NOWAIT se verificó con dos conexiones ODBC y un bloqueo real en conflicto.
 - Imagen del piloto construida; sincronización de DocTypes Frappe y hooks de instalación completados, incluyendo resincronización de tablas existentes.
 - Índices por prefijo, unicidad parcial de la cola y validación DISTINCT/ORDER BY cuentan con adaptaciones explícitas.
 - Sitio original comprobado también en navegador: login correcto y escritorio con Frappe HR/ERPNext.
 - Código incorporado al fork `GCruzJoa/frappe-hrms`, rama `codex/frappe-mssql-pilot`; las siguientes revisiones se publican allí.
-- Pendientes: ERPNext/HRMS, construcción pública final y aceptación funcional completa.
+- Construcción desde las fuentes públicas fijadas completada; commits y árboles limpios verificados antes de aplicar parches.
+- Instalación nueva completa de Frappe, ERPNext y HRMS sobre SQL Server, con sus hooks reales.
+- Se corrigieron transacciones ODBC y limpieza de conexiones reutilizadas, conversión de Singles, UPDATE correlado, secuencias, comprobación TCP de migraciones y manifiestos de recursos web.
+- Verificación completa aprobada: asistente oficial, empleados, búsqueda/paginación, permisos básicos, rollback ante clave duplicada, doce números concurrentes, dos migraciones y persistencia tras reinicio.
+- Respaldo nativo verificado y restaurado en una base nueva; archivos públicos/privados y configuración recuperados y comparados por hash.
+- Login del piloto comprobado en navegador; alta de Lucía Núñez (HR-EMP-00001), edición a Lucía María Núñez y consulta en la lista. Evidencia privada guardada.
+- Piloto detenido al terminar, conservando volúmenes. Sitio original conservado activo. Detalles y límites en acceptance-results.md y compatibility.md.

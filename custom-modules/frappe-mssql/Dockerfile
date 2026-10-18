@@ -15,6 +15,7 @@ RUN uv pip install --python env/bin/python -e /opt/frappe-mssql \
     && env/bin/python /opt/frappe-mssql/scripts/apply_patches.py apps/frappe /opt/frappe-mssql/patches frappe \
     && env/bin/python /opt/frappe-mssql/scripts/apply_patches.py apps/erpnext /opt/frappe-mssql/patches erpnext \
     && env/bin/python /opt/frappe-mssql/scripts/apply_patches.py apps/hrms /opt/frappe-mssql/patches hrms
+RUN python3 -c "from pathlib import Path; import shutil; p=Path('/opt/frappe-mssql/built-assets'); p.mkdir(); [shutil.copy2(x,p/x.name) for x in Path('sites/assets').glob('*.json')]"
 # Keep applications/assets; site databases, credentials and logs belong to the pilot volumes.
 RUN python3 -c "from pathlib import Path; import shutil; p=Path('sites'); [shutil.rmtree(x) for x in p.iterdir() if x.is_dir() and x.name != 'assets']; [(p/x).unlink(missing_ok=True) for x in ('common_site_config.json', 'currentsite.txt')]; p=Path('logs'); [x.unlink() for x in p.iterdir() if x.is_file()]"
 ENTRYPOINT ["/home/frappe/frappe-bench/env/bin/python", "/opt/frappe-mssql/scripts/entrypoint.py"]
