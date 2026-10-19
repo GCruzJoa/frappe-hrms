@@ -1,0 +1,2443 @@
+{
+  "verified_at": "2026-10-19T01:39:32.921721+00:00",
+  "classification": "smoke-coverage-not-business-certification",
+  "app_commits": {
+    "frappe": "ec6e65cb5a18ecda14364f85a04e8f0b91e59414",
+    "erpnext": "b365eb695844e1db9a7484df255c428cefe6e57e",
+    "hrms": "44e80d64686ae07297095930e5102aadaf034bc8"
+  },
+  "catalog": {
+    "status": "passed",
+    "source_counts": {
+      "frappe": 308,
+      "erpnext": 534,
+      "hrms": 158
+    },
+    "expected": 1000,
+    "installed": 1000,
+    "missing": {},
+    "module_mismatches": {}
+  },
+  "schema_totals": {
+    "passed": 974,
+    "not-applicable": 26
+  },
+  "report_totals": {
+    "passed": 217,
+    "not-applicable-country": 3
+  },
+  "reports_with_rows": 72,
+  "workflow_totals": {
+    "passed": 24,
+    "failed": 0,
+    "fixtures": "rolled-back"
+  },
+  "modules": [
+    {
+      "name": "Core",
+      "app": "frappe",
+      "doctypes": 114,
+      "schema": {
+        "not-applicable": 11,
+        "passed": 103
+      },
+      "reports": {
+        "passed": 4
+      },
+      "reports_with_rows": 3,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Website",
+      "app": "frappe",
+      "doctypes": 39,
+      "schema": {
+        "passed": 38,
+        "not-applicable": 1
+      },
+      "reports": {
+        "passed": 1
+      },
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "unpublished-web-page-edit"
+      ],
+      "storage_workflow_cases": [
+        "unpublished-web-page-edit"
+      ]
+    },
+    {
+      "name": "Workflow",
+      "app": "frappe",
+      "doctypes": 10,
+      "schema": {
+        "passed": 10
+      },
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Email",
+      "app": "frappe",
+      "doctypes": 17,
+      "schema": {
+        "passed": 17
+      },
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "email-template-no-send"
+      ],
+      "storage_workflow_cases": [
+        "email-template-no-send"
+      ]
+    },
+    {
+      "name": "Custom",
+      "app": "frappe",
+      "doctypes": 5,
+      "schema": {
+        "passed": 5
+      },
+      "reports": {
+        "passed": 1
+      },
+      "reports_with_rows": 1,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Geo",
+      "app": "frappe",
+      "doctypes": 2,
+      "schema": {
+        "passed": 2
+      },
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Desk",
+      "app": "frappe",
+      "doctypes": 66,
+      "schema": {
+        "passed": 59,
+        "not-applicable": 7
+      },
+      "reports": {
+        "passed": 1
+      },
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Integrations",
+      "app": "frappe",
+      "doctypes": 24,
+      "schema": {
+        "passed": 24
+      },
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Printing",
+      "app": "frappe",
+      "doctypes": 8,
+      "schema": {
+        "passed": 8
+      },
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Contacts",
+      "app": "frappe",
+      "doctypes": 7,
+      "schema": {
+        "passed": 7
+      },
+      "reports": {
+        "passed": 1
+      },
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "contact-customer-link-edit"
+      ],
+      "storage_workflow_cases": [
+        "contact-customer-link-edit"
+      ]
+    },
+    {
+      "name": "Automation",
+      "app": "frappe",
+      "doctypes": 16,
+      "schema": {
+        "passed": 16
+      },
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "System",
+      "app": "frappe",
+      "doctypes": 0,
+      "schema": {},
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Build",
+      "app": "frappe",
+      "doctypes": 0,
+      "schema": {},
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Data",
+      "app": "frappe",
+      "doctypes": 0,
+      "schema": {},
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Users",
+      "app": "frappe",
+      "doctypes": 0,
+      "schema": {},
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Accounts",
+      "app": "erpnext",
+      "doctypes": 191,
+      "schema": {
+        "passed": 187,
+        "not-applicable": 4
+      },
+      "reports": {
+        "passed": 56
+      },
+      "reports_with_rows": 29,
+      "workflow_cases": [
+        "journal-post-cancel-balanced-ledger"
+      ],
+      "storage_workflow_cases": [
+        "journal-post-cancel-balanced-ledger"
+      ]
+    },
+    {
+      "name": "CRM",
+      "app": "erpnext",
+      "doctypes": 28,
+      "schema": {
+        "passed": 28
+      },
+      "reports": {
+        "passed": 9
+      },
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "lead-opportunity"
+      ],
+      "storage_workflow_cases": [
+        "lead-opportunity"
+      ]
+    },
+    {
+      "name": "Buying",
+      "app": "erpnext",
+      "doctypes": 19,
+      "schema": {
+        "passed": 19
+      },
+      "reports": {
+        "passed": 10
+      },
+      "reports_with_rows": 2,
+      "workflow_cases": [
+        "purchase-order-submit-cancel"
+      ],
+      "storage_workflow_cases": [
+        "purchase-order-submit-cancel"
+      ]
+    },
+    {
+      "name": "Projects",
+      "app": "erpnext",
+      "doctypes": 15,
+      "schema": {
+        "passed": 15
+      },
+      "reports": {
+        "passed": 5
+      },
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "project-task-complete"
+      ],
+      "storage_workflow_cases": [
+        "project-task-complete"
+      ]
+    },
+    {
+      "name": "Selling",
+      "app": "erpnext",
+      "doctypes": 20,
+      "schema": {
+        "passed": 20
+      },
+      "reports": {
+        "passed": 23
+      },
+      "reports_with_rows": 7,
+      "workflow_cases": [
+        "sales-order-submit-cancel"
+      ],
+      "storage_workflow_cases": [
+        "sales-order-submit-cancel"
+      ]
+    },
+    {
+      "name": "Setup",
+      "app": "erpnext",
+      "doctypes": 40,
+      "schema": {
+        "passed": 40
+      },
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": [
+        "maintenance-visit-submit-cancel"
+      ]
+    },
+    {
+      "name": "Manufacturing",
+      "app": "erpnext",
+      "doctypes": 49,
+      "schema": {
+        "passed": 48,
+        "not-applicable": 1
+      },
+      "reports": {
+        "passed": 21
+      },
+      "reports_with_rows": 4,
+      "workflow_cases": [
+        "bom-submit-and-explorer"
+      ],
+      "storage_workflow_cases": [
+        "bom-submit-and-explorer"
+      ]
+    },
+    {
+      "name": "Stock",
+      "app": "erpnext",
+      "doctypes": 78,
+      "schema": {
+        "passed": 78
+      },
+      "reports": {
+        "passed": 50
+      },
+      "reports_with_rows": 19,
+      "workflow_cases": [
+        "stock-receipt-ledger-cancel"
+      ],
+      "storage_workflow_cases": [
+        "stock-receipt-ledger-cancel",
+        "bom-submit-and-explorer",
+        "quality-goal-and-inspection-template",
+        "existing-asset-submit-cancel"
+      ]
+    },
+    {
+      "name": "Support",
+      "app": "erpnext",
+      "doctypes": 11,
+      "schema": {
+        "passed": 11
+      },
+      "reports": {
+        "passed": 4
+      },
+      "reports_with_rows": 1,
+      "workflow_cases": [
+        "issue-create-close"
+      ],
+      "storage_workflow_cases": [
+        "issue-create-close"
+      ]
+    },
+    {
+      "name": "Utilities",
+      "app": "erpnext",
+      "doctypes": 4,
+      "schema": {
+        "passed": 4
+      },
+      "reports": {
+        "passed": 1
+      },
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Assets",
+      "app": "erpnext",
+      "doctypes": 26,
+      "schema": {
+        "passed": 26
+      },
+      "reports": {
+        "passed": 1
+      },
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "existing-asset-submit-cancel"
+      ],
+      "storage_workflow_cases": [
+        "existing-asset-submit-cancel"
+      ]
+    },
+    {
+      "name": "Portal",
+      "app": "erpnext",
+      "doctypes": 2,
+      "schema": {
+        "passed": 2
+      },
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Maintenance",
+      "app": "erpnext",
+      "doctypes": 5,
+      "schema": {
+        "passed": 5
+      },
+      "reports": {
+        "passed": 1
+      },
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "maintenance-visit-submit-cancel"
+      ],
+      "storage_workflow_cases": [
+        "maintenance-visit-submit-cancel"
+      ]
+    },
+    {
+      "name": "Regional",
+      "app": "erpnext",
+      "doctypes": 5,
+      "schema": {
+        "passed": 5
+      },
+      "reports": {
+        "not-applicable-country": 3
+      },
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "ERPNext Integrations",
+      "app": "erpnext",
+      "doctypes": 1,
+      "schema": {
+        "passed": 1
+      },
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Quality Management",
+      "app": "erpnext",
+      "doctypes": 16,
+      "schema": {
+        "passed": 16
+      },
+      "reports": {
+        "passed": 1
+      },
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "quality-goal-and-inspection-template"
+      ],
+      "storage_workflow_cases": [
+        "quality-goal-and-inspection-template"
+      ]
+    },
+    {
+      "name": "Communication",
+      "app": "erpnext",
+      "doctypes": 2,
+      "schema": {
+        "passed": 2
+      },
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Telephony",
+      "app": "erpnext",
+      "doctypes": 5,
+      "schema": {
+        "passed": 5
+      },
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Bulk Transaction",
+      "app": "erpnext",
+      "doctypes": 2,
+      "schema": {
+        "not-applicable": 1,
+        "passed": 1
+      },
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Subcontracting",
+      "app": "erpnext",
+      "doctypes": 13,
+      "schema": {
+        "passed": 13
+      },
+      "reports": {
+        "passed": 3
+      },
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "EDI",
+      "app": "erpnext",
+      "doctypes": 2,
+      "schema": {
+        "passed": 2
+      },
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "HR Setup",
+      "app": "hrms",
+      "doctypes": 0,
+      "schema": {},
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "employee-edit-and-link-search"
+      ],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Tenure",
+      "app": "hrms",
+      "doctypes": 0,
+      "schema": {},
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "employee-onboarding-submit-cancel"
+      ],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Recruitment",
+      "app": "hrms",
+      "doctypes": 0,
+      "schema": {},
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "job-applicant-offer-submit-cancel"
+      ],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Shift and Attendance",
+      "app": "hrms",
+      "doctypes": 0,
+      "schema": {},
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "attendance-submit-cancel",
+        "shift-attendance-nonempty-checkins"
+      ],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Leaves",
+      "app": "hrms",
+      "doctypes": 0,
+      "schema": {},
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "leave-allocation-application-cancel"
+      ],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Expenses",
+      "app": "hrms",
+      "doctypes": 0,
+      "schema": {},
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "expense-claim-ledger-cancel"
+      ],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Performance",
+      "app": "hrms",
+      "doctypes": 0,
+      "schema": {},
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "appraisal-cycle-create-edit"
+      ],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "Payroll",
+      "app": "hrms",
+      "doctypes": 43,
+      "schema": {
+        "passed": 43
+      },
+      "reports": {
+        "passed": 8
+      },
+      "reports_with_rows": 5,
+      "workflow_cases": [
+        "salary-structure-assignment-slip-cancel"
+      ],
+      "storage_workflow_cases": [
+        "salary-structure-assignment-slip-cancel",
+        "synthetic-tax-exemption-declaration"
+      ]
+    },
+    {
+      "name": "Tax and Benefits",
+      "app": "hrms",
+      "doctypes": 0,
+      "schema": {},
+      "reports": {},
+      "reports_with_rows": 0,
+      "workflow_cases": [
+        "synthetic-tax-exemption-declaration"
+      ],
+      "storage_workflow_cases": []
+    },
+    {
+      "name": "HR",
+      "app": "hrms",
+      "doctypes": 115,
+      "schema": {
+        "passed": 114,
+        "not-applicable": 1
+      },
+      "reports": {
+        "passed": 16
+      },
+      "reports_with_rows": 1,
+      "workflow_cases": [],
+      "storage_workflow_cases": [
+        "employee-edit-and-link-search",
+        "attendance-submit-cancel",
+        "shift-attendance-nonempty-checkins",
+        "job-applicant-offer-submit-cancel",
+        "leave-allocation-application-cancel",
+        "expense-claim-ledger-cancel",
+        "employee-onboarding-submit-cancel",
+        "appraisal-cycle-create-edit"
+      ]
+    }
+  ],
+  "report_cases": [
+    {
+      "name": "Account Balance",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Accounts Payable",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Accounts Payable Summary",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Accounts Receivable",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Accounts Receivable Summary",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Asset Depreciation Ledger",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Asset Depreciations and Balances",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Balance Sheet",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 64
+    },
+    {
+      "name": "Bank Clearance Summary",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Bank Reconciliation Statement",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 6
+    },
+    {
+      "name": "Billed Items To Be Received",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Budget Variance Report",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Calculated Discount Mismatch",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Cash Flow",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 17
+    },
+    {
+      "name": "Cheques and Deposits Incorrectly cleared",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Consolidated Accounts Payable",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Consolidated Accounts Payable Summary",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Consolidated Accounts Receivable",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Consolidated Accounts Receivable Summary",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Consolidated Financial Statement",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 64
+    },
+    {
+      "name": "Consolidated Trial Balance",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 74
+    },
+    {
+      "name": "Custom Financial Statement",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": null
+    },
+    {
+      "name": "Customer Ledger Summary",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Deferred Revenue and Expense",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 2
+    },
+    {
+      "name": "Delivered Items To Be Billed",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Dimension-wise Accounts Balance Report",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 15
+    },
+    {
+      "name": "Financial Ratios",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 14
+    },
+    {
+      "name": "General and Payment Ledger Comparison",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "General Ledger",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 3
+    },
+    {
+      "name": "Gross and Net Profit Report",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 12
+    },
+    {
+      "name": "Gross Profit",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 3
+    },
+    {
+      "name": "Inactive Sales Items",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 3
+    },
+    {
+      "name": "Invalid Ledger Entries",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Item-wise Purchase Register",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 4
+    },
+    {
+      "name": "Item-wise Sales Register",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 4
+    },
+    {
+      "name": "Payment Ledger",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Payment Period Based On Invoice Date",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "POS Register",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Profit and Loss Statement",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 48
+    },
+    {
+      "name": "Profitability Analysis",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 4
+    },
+    {
+      "name": "Purchase Invoice Trends",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 2
+    },
+    {
+      "name": "Purchase Register",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Received Items To Be Billed",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Sales Invoice Trends",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 2
+    },
+    {
+      "name": "Sales Partners Commission",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Sales Payment Summary",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Sales Register",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Share Balance",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Share Ledger",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Supplier Ledger Summary",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Tax Withholding Details",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "TDS Computation Summary",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Trial Balance",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 74
+    },
+    {
+      "name": "Trial Balance (Simple)",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 6
+    },
+    {
+      "name": "Trial Balance for Party",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 2
+    },
+    {
+      "name": "Voucher-wise Balance",
+      "module": "Accounts",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Fixed Asset Register",
+      "module": "Assets",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Item-wise Purchase History",
+      "module": "Buying",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Procurement Tracker",
+      "module": "Buying",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Purchase Analytics",
+      "module": "Buying",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Purchase Order Analysis",
+      "module": "Buying",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Purchase Order Trends",
+      "module": "Buying",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Requested Items to Order and Receive",
+      "module": "Buying",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Subcontract Order Summary",
+      "module": "Buying",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Subcontracted Item To Be Received",
+      "module": "Buying",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Subcontracted Raw Materials To Be Transferred",
+      "module": "Buying",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Supplier Quotation Comparison",
+      "module": "Buying",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Addresses And Contacts",
+      "module": "Contacts",
+      "app": "frappe",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Database Storage Usage By Tables",
+      "module": "Core",
+      "app": "frappe",
+      "status": "passed",
+      "result_rows": 914
+    },
+    {
+      "name": "Permitted Documents For User",
+      "module": "Core",
+      "app": "frappe",
+      "status": "passed",
+      "result_rows": 4
+    },
+    {
+      "name": "Prepared Report Analytics",
+      "module": "Core",
+      "app": "frappe",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "User Doctype Permissions",
+      "module": "Core",
+      "app": "frappe",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Campaign Efficiency",
+      "module": "CRM",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "First Response Time for Opportunity",
+      "module": "CRM",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Lead Conversion Time",
+      "module": "CRM",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Lead Details",
+      "module": "CRM",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Lead Owner Efficiency",
+      "module": "CRM",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Lost Opportunity",
+      "module": "CRM",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Opportunity Summary by Sales Stage",
+      "module": "CRM",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Prospects Engaged But Not Converted",
+      "module": "CRM",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Sales Pipeline Analytics",
+      "module": "CRM",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Audit System Hooks",
+      "module": "Custom",
+      "app": "frappe",
+      "status": "passed",
+      "result_rows": 354
+    },
+    {
+      "name": "ToDo",
+      "module": "Desk",
+      "app": "frappe",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Appraisal Overview",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Employee Advance Summary",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Employee Analytics",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Employee Birthday",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Employee Exits",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Employee Hours Utilization Based On Timesheet",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Employee Leave Balance",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Employee Leave Balance Summary",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Employees working on a holiday",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Leave Ledger",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Monthly Attendance Sheet",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Project Profitability",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Recruitment Analytics",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Shift Attendance",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Unpaid Expense Claim",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Vehicle Expenses",
+      "module": "HR",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Maintenance Schedules",
+      "module": "Maintenance",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "BOM Explorer",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "BOM Operations Time",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "BOM Stock Analysis",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 3
+    },
+    {
+      "name": "BOM Variance Report",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Completed Work Orders",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Cost of Poor Quality Report",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Downtime Analysis",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Exponential Smoothing Forecasting",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Issued Items Against Work Order",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Job Card Summary",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Material Requirements Planning Report",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Open Work Orders",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Process Loss Report",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Production Analytics",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 6
+    },
+    {
+      "name": "Production Plan Summary",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Production Planning Report",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Quality Inspection Summary",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Work Order Consumed Materials",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Work Order Stock Report",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Work Order Summary",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Work Orders in Progress",
+      "module": "Manufacturing",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Accrued Earnings Report",
+      "module": "Payroll",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Bank Remittance",
+      "module": "Payroll",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Employee CTC Break-up",
+      "module": "Payroll",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 7
+    },
+    {
+      "name": "Income Tax Computation",
+      "module": "Payroll",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Income Tax Deductions",
+      "module": "Payroll",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Salary Payments Based On Payment Mode",
+      "module": "Payroll",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 6
+    },
+    {
+      "name": "Salary Payments via ECS",
+      "module": "Payroll",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Salary Register",
+      "module": "Payroll",
+      "app": "hrms",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Daily Timesheet Summary",
+      "module": "Projects",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Delayed Tasks Summary",
+      "module": "Projects",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Project Summary",
+      "module": "Projects",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Project wise Stock Tracking",
+      "module": "Projects",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Timesheet Billing Summary",
+      "module": "Projects",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Review",
+      "module": "Quality Management",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "IRS 1099",
+      "module": "Regional",
+      "app": "erpnext",
+      "status": "not-applicable-country"
+    },
+    {
+      "name": "UAE VAT 201",
+      "module": "Regional",
+      "app": "erpnext",
+      "status": "not-applicable-country"
+    },
+    {
+      "name": "VAT Audit Report",
+      "module": "Regional",
+      "app": "erpnext",
+      "status": "not-applicable-country"
+    },
+    {
+      "name": "Address And Contacts",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Available Stock for Packing Items",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Customer Acquisition and Loyalty",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 12
+    },
+    {
+      "name": "Customer Credit Balance",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Customers Without Any Sales Transactions",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Customer-wise Item Price",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Inactive Customers",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Item-wise Sales History",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Lost Quotations",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Payment Terms Status for Sales Order",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Pending SO Items For Purchase Request",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Quotation Trends",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Sales Analytics",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Sales Order Analysis",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Sales Order Trends",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Sales Partner Commission Summary",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Sales Partner Target Variance based on Item Group",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Sales Partner Transaction Summary",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Sales Person Commission Summary",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Sales Person Target Variance Based On Item Group",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Sales Person-wise Transaction Summary",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Territory Target Variance Based On Item Group",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Territory-wise Sales",
+      "module": "Selling",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 3
+    },
+    {
+      "name": "Available Batch Report",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Available Serial No",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Batch Item Expiry Status",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Batch Split Tree",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Batch-Wise Balance History",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "BOM Search",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "COGS By Item Group",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Delayed Item Report",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Delayed Order Report",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Delivery Note Trends",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "FIFO Queue vs Qty After Transaction Comparison",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Incorrect Balance Qty After Transaction",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Incorrect Serial and Batch Bundle",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Incorrect Serial No Valuation",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Incorrect Stock Value Report",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Item Balance (Simple)",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 2
+    },
+    {
+      "name": "Item Price Stock",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 2
+    },
+    {
+      "name": "Item Prices",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 2
+    },
+    {
+      "name": "Item Shortage Report",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Item Variant Details",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Item Where Used",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Item Wise Consumption",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Items To Be Requested",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Itemwise Recommended Reorder Level",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 2
+    },
+    {
+      "name": "Landed Cost Report",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Material Requests for which Supplier Quotations are not created",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Negative Batch Report",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Product Bundle Balance",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Purchase Receipt Trends",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Requested Items To Be Transferred",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Reserved Stock",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Serial and Batch Summary",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Serial and Batch Wise Stock Balance",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Serial No and Batch Traceability",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Serial No Ledger",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Stock Ageing",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Stock Analytics",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 2
+    },
+    {
+      "name": "Stock and Account Value Comparison",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Stock Balance",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Stock Ledger",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 2
+    },
+    {
+      "name": "Stock Ledger Entries of Cancelled Vouchers",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Stock Ledger Invariant Check",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Stock Ledger Variance",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Stock Projected Qty",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Stock Qty vs Batch Qty",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Stock Qty vs Serial No Count",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Stock Valuation Comparison",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Total Stock Summary",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Warehouse wise Item Balance Age and Value",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 1
+    },
+    {
+      "name": "Warehouse Wise Stock Balance",
+      "module": "Stock",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 5
+    },
+    {
+      "name": "Subcontracted Items To Be Delivered",
+      "module": "Subcontracting",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Subcontracted Raw Materials To Be Received",
+      "module": "Subcontracting",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Subcontracting Inward Order Summary",
+      "module": "Subcontracting",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "First Response Time for Issues",
+      "module": "Support",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Issue Analytics",
+      "module": "Support",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Issue Summary",
+      "module": "Support",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Support Hour Distribution",
+      "module": "Support",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 365
+    },
+    {
+      "name": "YouTube Interactions",
+      "module": "Utilities",
+      "app": "erpnext",
+      "status": "passed",
+      "result_rows": 0
+    },
+    {
+      "name": "Website Analytics",
+      "module": "Website",
+      "app": "frappe",
+      "status": "passed",
+      "result_rows": 0
+    }
+  ],
+  "workflow_cases": [
+    {
+      "name": "employee-edit-and-link-search",
+      "module": "HR Setup",
+      "status": "passed",
+      "storage_modules": [
+        "HR"
+      ]
+    },
+    {
+      "name": "attendance-submit-cancel",
+      "module": "Shift and Attendance",
+      "status": "passed",
+      "storage_modules": [
+        "HR"
+      ]
+    },
+    {
+      "name": "shift-attendance-nonempty-checkins",
+      "module": "Shift and Attendance",
+      "status": "passed",
+      "storage_modules": [
+        "HR"
+      ]
+    },
+    {
+      "name": "lead-opportunity",
+      "module": "CRM",
+      "status": "passed",
+      "storage_modules": [
+        "CRM"
+      ]
+    },
+    {
+      "name": "job-applicant-offer-submit-cancel",
+      "module": "Recruitment",
+      "status": "passed",
+      "storage_modules": [
+        "HR"
+      ]
+    },
+    {
+      "name": "sales-order-submit-cancel",
+      "module": "Selling",
+      "status": "passed",
+      "storage_modules": [
+        "Selling"
+      ]
+    },
+    {
+      "name": "purchase-order-submit-cancel",
+      "module": "Buying",
+      "status": "passed",
+      "storage_modules": [
+        "Buying"
+      ]
+    },
+    {
+      "name": "journal-post-cancel-balanced-ledger",
+      "module": "Accounts",
+      "status": "passed",
+      "storage_modules": [
+        "Accounts"
+      ]
+    },
+    {
+      "name": "stock-receipt-ledger-cancel",
+      "module": "Stock",
+      "status": "passed",
+      "storage_modules": [
+        "Stock"
+      ]
+    },
+    {
+      "name": "bom-submit-and-explorer",
+      "module": "Manufacturing",
+      "status": "passed",
+      "storage_modules": [
+        "Manufacturing",
+        "Stock"
+      ]
+    },
+    {
+      "name": "project-task-complete",
+      "module": "Projects",
+      "status": "passed",
+      "storage_modules": [
+        "Projects"
+      ]
+    },
+    {
+      "name": "leave-allocation-application-cancel",
+      "module": "Leaves",
+      "status": "passed",
+      "storage_modules": [
+        "HR"
+      ]
+    },
+    {
+      "name": "salary-structure-assignment-slip-cancel",
+      "module": "Payroll",
+      "status": "passed",
+      "storage_modules": [
+        "Payroll"
+      ]
+    },
+    {
+      "name": "expense-claim-ledger-cancel",
+      "module": "Expenses",
+      "status": "passed",
+      "storage_modules": [
+        "HR"
+      ]
+    },
+    {
+      "name": "employee-onboarding-submit-cancel",
+      "module": "Tenure",
+      "status": "passed",
+      "storage_modules": [
+        "HR"
+      ]
+    },
+    {
+      "name": "appraisal-cycle-create-edit",
+      "module": "Performance",
+      "status": "passed",
+      "storage_modules": [
+        "HR"
+      ]
+    },
+    {
+      "name": "quality-goal-and-inspection-template",
+      "module": "Quality Management",
+      "status": "passed",
+      "storage_modules": [
+        "Quality Management",
+        "Stock"
+      ]
+    },
+    {
+      "name": "existing-asset-submit-cancel",
+      "module": "Assets",
+      "status": "passed",
+      "storage_modules": [
+        "Assets",
+        "Stock"
+      ]
+    },
+    {
+      "name": "maintenance-visit-submit-cancel",
+      "module": "Maintenance",
+      "status": "passed",
+      "storage_modules": [
+        "Maintenance",
+        "Setup"
+      ]
+    },
+    {
+      "name": "synthetic-tax-exemption-declaration",
+      "module": "Tax and Benefits",
+      "status": "passed",
+      "storage_modules": [
+        "Payroll"
+      ]
+    },
+    {
+      "name": "issue-create-close",
+      "module": "Support",
+      "status": "passed",
+      "storage_modules": [
+        "Support"
+      ]
+    },
+    {
+      "name": "unpublished-web-page-edit",
+      "module": "Website",
+      "status": "passed",
+      "storage_modules": [
+        "Website"
+      ]
+    },
+    {
+      "name": "contact-customer-link-edit",
+      "module": "Contacts",
+      "status": "passed",
+      "storage_modules": [
+        "Contacts"
+      ]
+    },
+    {
+      "name": "email-template-no-send",
+      "module": "Email",
+      "status": "passed",
+      "storage_modules": [
+        "Email"
+      ]
+    }
+  ]
+}

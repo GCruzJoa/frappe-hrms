@@ -11,7 +11,13 @@ Frappe, ERPNext y HRMS 17 en SQL Server 2025, login, empresa de prueba y alta,
 consulta y edición de empleados desde la interfaz. Pasaron permisos básicos,
 rollback ante un error real, numeración concurrente, dos migraciones, reinicio
 y respaldo/restauración nativos. La instalación original de MariaDB se actualizó
-y conserva su funcionamiento. El piloto se entrega detenido con sus volúmenes.
+y conserva sus respaldos. A petición del usuario, el piloto está encendido y
+los tres contenedores del entorno original están apagados.
+
+La ampliación revisa los 46 módulos declarados y los 1,000 DocTypes de las
+fuentes fijadas. La cobertura por módulo, los informes y los recorridos de
+negocio están en `docs/module-coverage.md`; instalar un módulo no certifica
+todas sus funciones.
 
 Los resultados y sus límites están en `docs/acceptance-results.md` y
 `docs/compatibility.md`. No se certifica la cobertura completa de HRMS ni su uso
@@ -43,6 +49,7 @@ versiones registradas por una imagen `latest`.
 ./scripts/Start-Pilot.ps1 -Build -FromPublicSources
 docker compose --project-name frappe-mssql-pilot --file compose.yaml logs --tail 100 frappe
 ./scripts/Verify-Pilot.ps1
+./scripts/Verify-Modules.ps1 -KeepRunning
 ./scripts/Stop-Pilot.ps1
 ```
 
@@ -68,6 +75,20 @@ El cifrado ODBC está habilitado. El perfil local acepta el certificado
 autogenerado del servidor mediante `mssql_trust_server_certificate`; cualquier
 otro despliegue debe configurar un certificado verificable y deshabilitar esa
 excepción.
+
+`Verify-Modules.ps1` requiere el piloto iniciado. Crea o conserva una copia QA
+separada (`mssql-qa.localhost`, base/usuario `frappe_mssql_qa`) mediante respaldo
+y restauración nativos, sin sustituir la base del piloto. Prepara datos
+ficticios para informes, pausa su scheduler y silencia sus correos. Verifica
+catálogo, lecturas, informes, recorridos con rollback y contrato ODBC. Los
+resultados detallados quedan en `private/module-validation`. Sin `-KeepRunning`
+detiene los servicios del piloto al finalizar, conservando los volúmenes.
+La copia QA usa la misma instancia SQL Server y no publica puertos adicionales.
+Una QA existente se conserva; para actualizar su línea base se requiere un
+procedimiento de recuperación explícito, no se sobrescribe automáticamente.
+
+Para publicar una matriz sin credenciales, SQL ni identificadores de fixtures:
+`./.venv/Scripts/python.exe scripts/export_module_results.py`.
 
 ## Respaldo y recuperación
 
@@ -102,5 +123,6 @@ otros motores. Las operaciones fuera de cobertura se enumeran en la matriz.
 
 Los parches se rechazan si cambia un commit o el hash de un archivo original.
 Actualizar las aplicaciones exige regenerar y revisar los parches y repetir
-las pruebas. El piloto no migra datos desde MariaDB ni certifica módulos de
-nómina, contabilidad, inventario o producción.
+las pruebas. El piloto no migra datos desde MariaDB. La matriz distingue los
+escenarios verificados de nómina, contabilidad, inventario y fabricación de su
+cobertura completa, que sigue pendiente.

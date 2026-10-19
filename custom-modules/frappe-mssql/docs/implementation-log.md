@@ -31,3 +31,32 @@
 - Respaldo nativo verificado y restaurado en una base nueva; archivos públicos/privados y configuración recuperados y comparados por hash.
 - Login del piloto comprobado en navegador; alta de Lucía Núñez (HR-EMP-00001), edición a Lucía María Núñez y consulta en la lista. Evidencia privada guardada.
 - Piloto detenido al terminar, conservando volúmenes. Sitio original conservado activo. Detalles y límites en acceptance-results.md y compatibility.md.
+
+### Ampliación posterior solicitada
+
+- Se reanudó el piloto y se apagaron los tres contenedores originales por
+  petición del usuario; el piloto queda autorizado a seguir encendido.
+- Se corrigió la búsqueda Link con literales Unicode N'T' sin deshabilitar
+  validación ni interpolar valores en SQL.
+- La auditoría comparó las fuentes fijadas con los 1,000 DocTypes instalados:
+  Frappe 308, ERPNext 534 y HRMS 158, sin faltantes ni módulos mal asignados.
+- Se incorporaron auditoría reproducible y matriz para los 46 módulos
+  declarados: 974 lecturas y 26 virtuales sin tabla propia.
+- Se adaptaron GROUP BY parametrizado y dependencias por clave primaria,
+  predicados escalares, tuplas/IN vacío, funciones, alias, informes de
+  almacenamiento, árboles BOM/Task/lotes y bloqueos de stock.
+- Se agregó una QA separada mediante restauración nativa; los fixtures de
+  informes persisten exclusivamente allí. Sus correos y scheduler se inhiben.
+- Con datos, se detectaron y corrigieron errores adicionales en resúmenes de
+  clientes/proveedores, lotes, agregación fiscal y contrato TIME de Frappe.
+- sql() entrega NUMERIC como float y TIME como timedelta, como espera Frappe;
+  native() conserva Decimal/time y sus microsegundos para comprobación exacta.
+- Se verificaron 217 informes de 220; tres regionales mantienen restricciones
+  de país para la empresa dominicana. No se acreditan sus cálculos extranjeros.
+- Se añadieron 24 recorridos de negocio con rollback y 51 pruebas unitarias.
+  La matriz separa área funcional del módulo donde viven los documentos.
+- Parche explícito para el nombre de Item Balance (Simple), cuyo directorio
+  Python en ERPNext fijado continúa llamándose item_balance.
+- Se conserva un inventario pendiente: módulos sin escenarios propios,
+  permisos avanzados, integraciones, lotes reales, carga y nueva instalación
+  vacía con la ampliación. La cobertura de humo no es certificación total.

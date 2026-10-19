@@ -1,0 +1,44 @@
+--- a/hrms/hr/report/shift_attendance/shift_attendance.py
++++ b/hrms/hr/report/shift_attendance/shift_attendance.py
+@@ -214,6 +214,7 @@
+ 
+ 
+ def get_attendance_with_checkins(filters):
++	from frappe.query_builder.functions import Min, Max
+ 	attendance = frappe.qb.DocType("Attendance")
+ 	checkin = frappe.qb.DocType("Employee Checkin")
+ 	shift_type = frappe.qb.DocType("Shift Type")
+@@ -223,14 +224,14 @@
+ 		.inner_join(checkin)
+ 		.on(checkin.attendance == attendance.name)
+ 		.select(
+-			checkin.shift_start,
+-			checkin.shift_end,
+-			checkin.shift_actual_start,
+-			checkin.shift_actual_end,
+-			shift_type.enable_late_entry_marking,
+-			shift_type.late_entry_grace_period,
+-			shift_type.enable_early_exit_marking,
+-			shift_type.early_exit_grace_period,
++			Min(checkin.shift_start).as_("shift_start") if frappe.db.db_type == "mssql" else checkin.shift_start,
++			Max(checkin.shift_end).as_("shift_end") if frappe.db.db_type == "mssql" else checkin.shift_end,
++			Min(checkin.shift_actual_start).as_("shift_actual_start") if frappe.db.db_type == "mssql" else checkin.shift_actual_start,
++			Max(checkin.shift_actual_end).as_("shift_actual_end") if frappe.db.db_type == "mssql" else checkin.shift_actual_end,
++			Max(shift_type.enable_late_entry_marking).as_("enable_late_entry_marking") if frappe.db.db_type == "mssql" else shift_type.enable_late_entry_marking,
++			Max(shift_type.late_entry_grace_period).as_("late_entry_grace_period") if frappe.db.db_type == "mssql" else shift_type.late_entry_grace_period,
++			Max(shift_type.enable_early_exit_marking).as_("enable_early_exit_marking") if frappe.db.db_type == "mssql" else shift_type.enable_early_exit_marking,
++			Max(shift_type.early_exit_grace_period).as_("early_exit_grace_period") if frappe.db.db_type == "mssql" else shift_type.early_exit_grace_period,
+ 		)
+ 	)
+ 	for field in filters:
+--- a/hrms/payroll/report/income_tax_computation/income_tax_computation.py
++++ b/hrms/payroll/report/income_tax_computation/income_tax_computation.py
+@@ -235,7 +235,7 @@
+ 			frappe.qb.from_(ss)
+ 			.inner_join(ss_comps)
+ 			.on(ss.name == ss_comps.parent)
+-			.select(ss.name, ss.employee, ss_comps.salary_component, Sum(ss_comps.amount).as_("amount"))
++			.select(*([ss.name] if frappe.db.db_type != "mssql" else []), ss.employee, ss_comps.salary_component, Sum(ss_comps.amount).as_("amount"))
+ 			.where(ss.docstatus == 1)
+ 			.where(ss.employee.isin(list(self.employees.keys())))
+ 			.where(ss_comps.do_not_include_in_total == 0)

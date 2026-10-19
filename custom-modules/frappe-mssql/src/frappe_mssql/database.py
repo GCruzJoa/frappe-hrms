@@ -2,10 +2,11 @@
 
 from contextlib import contextmanager
 from contextlib import suppress
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 import hashlib
 import itertools
+import json
 import re
 from zoneinfo import ZoneInfo
 
@@ -14,7 +15,7 @@ import frappe
 from frappe.database.database import Database
 from frappe.utils import get_table_name
 
-from .sql import compile_query, quote_identifier as qi, UnsupportedSQL
+from .sql import compile_query, quote_identifier as qi, UnsupportedSQL, ensure_read_only
 
 
 def _error_number(exc, *numbers):
@@ -24,7 +25,16 @@ def _error_number(exc, *numbers):
 def _odbc_parameters(values):
     # SQL_TIME_STRUCT has no fractional seconds. Bind ISO text so SQL Server's
     # time(6) conversion retains the full microsecond precision.
-    return [value.isoformat() if isinstance(value, time) else value for value in values]
+    result = []
+    for value in values:
+        if isinstance(value, timedelta):
+            if value.days != 0:
+                raise UnsupportedSQL("SQL Server TIME requires a clock value within one day")
+            hours, remainder = divmod(value.seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            value = f"{hours:02}:{minutes:02}:{seconds:02}.{value.microseconds:06}"
+        result.append(value.isoformat() if isinstance(value, time) else value)
+    return result
 
 
 class MSSQLDatabase(Database):
@@ -135,8 +145,9 @@ class MSSQLDatabase(Database):
         statement = re.sub(r"\s*/\*\s*FRAPPE_TRACE_ID:\s*[0-9a-f]+\s*\*/\s*$", "", query, flags=re.I).strip().rstrip(";")
         command = statement.lower()
         if command.startswith("start transaction"):
-            if "read only" in command:
-                raise UnsupportedSQL("Read-only transactions are not implemented")
+            if getattr(self, "_read_only_transaction", False) and "read only" not in command:
+                raise UnsupportedSQL("End the read-only transaction before starting a writable one")
+            self._read_only_transaction = "read only" in command
             self._clear_cursor()
             self._last_query = statement
             return
@@ -145,6 +156,7 @@ class MSSQLDatabase(Database):
                 self._conn.commit()
             else:
                 self._conn.rollback()
+            self._read_only_transaction = False
             self._clear_cursor()
             self._last_query = statement
             return
@@ -157,14 +169,22 @@ class MSSQLDatabase(Database):
         elif command.startswith("release savepoint "):
             return
         else:
+            if getattr(self, "_read_only_transaction", False):
+                ensure_read_only(query, values)
             sql, args = compile_query(query, values, utc_offset_minutes=self._utc_offset_minutes())
         self._last_query = sql
-        return self._cursor.execute(sql, _odbc_parameters(args))
+        result = self._cursor.execute(sql, _odbc_parameters(args))
+        if sql.startswith("DECLARE @__frappe_mssql_bind_"):
+            while self._cursor.description is None and self._cursor.nextset():
+                pass
+        return result
 
     def native(self, query, values=None, *, as_dict=False, pluck=False):
         """Internal T-SQL; retain values as parameters and never dialect-translate."""
         if not self._conn:
             self.connect()
+        if getattr(self, "_read_only_transaction", False):
+            ensure_read_only(query, values, native=True)
         sql, args = compile_query(query, values, native=True)
         self._last_query = sql
         self._cursor.execute(sql, _odbc_parameters(args))
@@ -177,7 +197,33 @@ class MSSQLDatabase(Database):
         return self.fetch_as_dict(rows) if as_dict else rows
 
     def _transform_result(self, result):
-        return tuple(tuple(row) for row in result)
+        # Both upstream MariaDB and PostgreSQL drivers expose NUMERIC as float.
+        # Preserve Decimal in native() for exact storage/diagnostic operations.
+        def convert(value):
+            if isinstance(value, Decimal):
+                return float(value)
+            if isinstance(value, time):
+                # Frappe represents Time fields as timedelta, including shift
+                # calculations that add a database time to a midnight datetime.
+                return timedelta(hours=value.hour, minutes=value.minute,
+                    seconds=value.second, microseconds=value.microsecond)
+            return value
+        return tuple(tuple(convert(value) for value in row) for row in result)
+
+    @contextmanager
+    def unbuffered_cursor(self):
+        # ODBC's default forward-only cursor fetches rows incrementally. Keep a
+        # separate handle and restore the surrounding cursor on context exit.
+        if not self._conn:
+            self.connect()
+        previous = self._cursor
+        self._cursor = self._conn.cursor()
+        self._cursor.arraysize = 1000
+        try:
+            yield
+        finally:
+            self._cursor.close()
+            self._cursor = previous
 
     @property
     def last_query(self):
@@ -296,6 +342,20 @@ class MSSQLDatabase(Database):
     def estimate_count(self, doctype):
         return self.count(doctype)
 
+    def _estimate_count(self, table):
+        return int(self.native("SELECT COALESCE(SUM([rows]),0) FROM sys.partitions WHERE object_id=OBJECT_ID(%s) AND index_id IN (0,1)", ("dbo."+qi(table),))[0][0])
+
+    def rename_column(self, doctype, old_column_name, new_column_name):
+        table = get_table_name(doctype)
+        columns = self.get_db_table_columns(table)
+        if old_column_name not in columns:
+            raise ValueError("The source column does not exist")
+        if new_column_name in columns:
+            raise FileExistsError("The destination column already exists")
+        qi(new_column_name)
+        qualified = "dbo." + qi(table) + "." + qi(old_column_name)
+        self.native("EXEC sys.sp_rename @objname=%s,@newname=%s,@objtype=N'COLUMN'", (qualified, new_column_name))
+
     def bulk_insert(self, doctype, fields, values, ignore_duplicates=False, *, chunk_size=1000):
         # SQL Server accepts at most 2100 parameters in a request.
         chunk_size = min(chunk_size, 1000, max(1, 2000 // max(1, len(fields))))
@@ -364,7 +424,7 @@ class MSSQLDatabase(Database):
 
     @contextmanager
     def advisory_lock(self, name, timeout=10):
-        resource = "frappe:" + str(name)
+        resource = self._lock_resource(name)
         result = self.native("""DECLARE @result int; EXEC @result=sys.sp_getapplock
             @Resource=%s,@LockMode='Exclusive',@LockOwner='Session',@LockTimeout=%s;
             SELECT @result""", (resource, int(timeout * 1000)))[0][0]
@@ -374,3 +434,15 @@ class MSSQLDatabase(Database):
             yield
         finally:
             self.native("EXEC sys.sp_releaseapplock @Resource=%s,@LockOwner='Session'", (resource,))
+
+    @staticmethod
+    def _lock_resource(key):
+        encoded = json.dumps([type(key).__name__, key], ensure_ascii=False, separators=(",", ":"), default=str)
+        return "frappe:" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+    def transaction_advisory_lock(self, key, *, timeout=10):
+        result = self.native("""DECLARE @result int; EXEC @result=sys.sp_getapplock
+            @Resource=%s,@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=%s;
+            SELECT @result""", (self._lock_resource(key), int(timeout*1000)))[0][0]
+        if result < 0:
+            raise frappe.QueryTimeoutError("SQL Server transaction advisory lock could not be acquired")

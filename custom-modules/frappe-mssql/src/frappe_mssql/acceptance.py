@@ -10,7 +10,7 @@ EMPLOYEE = "MSSQL-PILOT-EMPLOYEE"
 
 
 def _pilot_only():
-    if frappe.local.site != "mssql.localhost" or frappe.db.db_type != "mssql":
+    if (frappe.local.site, frappe.conf.db_name) not in (("mssql.localhost", "frappe_pilot"), ("mssql-qa.localhost", "frappe_mssql_qa")) or frappe.db.db_type != "mssql":
         raise RuntimeError("Acceptance fixtures may only run in the dedicated SQL Server pilot")
 
 
@@ -42,7 +42,8 @@ def run():
     _pilot_only()
     prepare_setup()
     backend = frappe.db.native("SELECT DB_NAME(),CAST(SERVERPROPERTY('ProductMajorVersion') AS int)")[0]
-    assert backend[0] == "frappe_pilot" and backend[1] == 17
+    expected_database = "frappe_mssql_qa" if frappe.local.site == "mssql-qa.localhost" else "frappe_pilot"
+    assert backend[0] == expected_database and backend[1] == 17
     assert {"frappe", "erpnext", "hrms"} <= set(frappe.get_installed_apps())
     for directory in ("public", "private"):
         fixture = Path(frappe.get_site_path(directory, "files", "mssql-pilot-unicode.txt"))

@@ -20,7 +20,9 @@
     "frappe/utils/global_search.py": "bb72566a0983313a2689413e1cc1adb0ba01115e7c0f61be35157b95a54b9ff1",
     "frappe/utils/password.py": "5d586fdba3573d2a587dbd9cb2585a253e2bc86ce3864932acad7b2d683bd8bf",
     "frappe/automation/doctype/automation_trigger_queue/automation_trigger_queue.py": "a053bc1222ba84a1498cd58a066d819f8fceea030639e94056db18233144669d",
+    "frappe/core/doctype/report/report.py": "f2bb0f0b10153ad2a4b4c40db492e28ac0925d3e25da9721b8bf99aba6163e8a",
     "frappe/core/report/database_storage_usage_by_tables/database_storage_usage_by_tables.py": "4dea857236ac9ce2057440e5a31e46e121da408ac6b048e9d92a45f54fba79af",
+    "frappe/core/report/prepared_report_analytics/prepared_report_analytics.py": "1e20588dd1b56ee274413517304dbcab93ddb1c3896c5f81759a9039a9ad6d90",
     "frappe/desk/doctype/system_console/system_console.py": "58d96e1d3240b5539b692d34edbbc8802901ce06036d7e20c9368ac877838f9b",
     "frappe/patches/v16_0/hash_oauth_bearer_tokens.py": "67b706ccdca324c2cc43b6b0fb6754f2e1530a50e6178a0bb7cac94d412af4a5"
   }

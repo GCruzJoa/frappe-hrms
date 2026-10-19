@@ -1,6 +1,19 @@
 {
   "commit": "b365eb695844e1db9a7484df255c428cefe6e57e",
   "files": {
-    "erpnext/patches/v16_0/update_serial_batch_entries.py": "0f700fa6810ba4b5c0bce4011452e29e43677dbc40e49ba58b716409c310cb61"
+    "erpnext/controllers/queries.py": "45d994b40a8cd8d9e65ca53d7389542fbc9f8c3bb83d90cdb0bdc3f65ce094e7",
+    "erpnext/controllers/stock_controller.py": "d3754d45b569c25e503eac590f76c8043e7d9f6dfb3c8d4f6f8ac5e5275523b7",
+    "erpnext/stock/stock_ledger.py": "0d31a841bef714a73db36e6cc1cae2c0adfd61553d63ecc2064554820bf8ebce",
+    "erpnext/accounts/report/financial_statements.py": "5ea2809cd0b17dfa40aa9ef6c02b6480c3ed31a0b19a1c8ce052c7be0930b375",
+    "erpnext/accounts/doctype/bank_clearance/bank_clearance.py": "a443f02781cb26c849acf63767f95ad4035defe07f85c1fc1d836d7baa2e5375",
+    "erpnext/manufacturing/doctype/bom/bom.py": "a008bfd7ee788dd87e3aa2dfae7d41fc3a37e75676bcf0b5871e2e99d77d42ca",
+    "erpnext/manufacturing/doctype/bom_update_log/bom_updation_utils.py": "cfc1407463478ca35b829c168d430955f92dc3f553f8095f473a6c29c2fbb3f2",
+    "erpnext/manufacturing/doctype/work_order/mapper.py": "446ef4d8909a9342c2ca6b261f897ab0166bd7021ce37802cf0c865e3d88c3d7",
+    "erpnext/manufacturing/report/bom_explorer/bom_explorer.py": "0a55eeb799ce968aaf063af1e2f919ce82288606457683329204ef65ad10792d",
+    "erpnext/patches/v16_0/update_serial_batch_entries.py": "0f700fa6810ba4b5c0bce4011452e29e43677dbc40e49ba58b716409c310cb61",
+    "erpnext/projects/doctype/task/task.py": "d9e19289796e5fb1c61d61d0ccf9e817bf151ab2429212613302df696fdb2cff",
+    "erpnext/stock/doctype/pick_list/pick_list.py": "bafcb007a9b59c51e1e881b3a65715cb35afd85a711960fd2de7b4ba40f23867",
+    "erpnext/stock/report/batch_split_tree/batch_split_tree.py": "e6ac969fecf521f0dc55e83e4eafe9446229c0a29782e772384046e13862e427",
+    "erpnext/stock/report/stock_projected_qty/stock_projected_qty.py": "6bef7e442b07c40d96079e541cd9bfa54353fc8067f3798c1d5e1c519f6e5da9"
   }
 }

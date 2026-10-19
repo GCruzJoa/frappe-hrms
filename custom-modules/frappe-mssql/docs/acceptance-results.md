@@ -1,5 +1,24 @@
 # Resultados de aceptación — 2026-10-18
 
+La primera entrega se documenta a continuación. La ampliación de módulos usa
+el mismo manifiesto de versiones y añade 51 pruebas unitarias, 24 recorridos
+con rollback en QA, inventario de 46 módulos/1,000 DocTypes y ejecución de 217
+informes; tres informes regionales conservan restricciones de país. Resultados
+vigentes, filas devueltas y límites: module-coverage.md/json y compatibility.md.
+El piloto se mantiene encendido y el entorno original apagado por instrucción
+posterior del usuario. Usar -KeepRunning en los scripts de verificación para
+conservar ese estado.
+
+La ampliación pasó Verify-Modules.ps1 -KeepRunning y después
+Verify-Pilot.ps1 -KeepRunning, este último con resultado passed el
+2026-10-19 a las 01:41:01 UTC. Se comprobaron login, empleados, permisos,
+rollback, concurrencia, dos migraciones, reinicio y restauración nativa.
+El respaldo exportado quedó en private/backups/20261019T014100Z/; seis
+archivos del sitio restaurados y comprobados. La ejecución de módulos está
+en private/modules-release-validation.log y la aceptación del piloto en
+private/modules-pilot-acceptance.log. Los informes públicos detallados están
+en module-coverage.json, con su fecha UTC de ejecución.
+
 Se ejecutó el piloto con SQL Server 2025 17.0.5015.4 Enterprise Developer,
 Python 3.14.8, pyodbc 5.3.0, Microsoft ODBC Driver 18.6.1.1 y SQLGlot 30.16.0.
 Los commits exactos de Frappe, ERPNext y HRMS están en versions.lock.json.

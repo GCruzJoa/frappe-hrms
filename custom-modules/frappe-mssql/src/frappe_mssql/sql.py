@@ -5,7 +5,8 @@ duplicate expressions without binding the wrong value to an ODBC placeholder.
 """
 
 from collections.abc import Mapping
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
+from decimal import Decimal
 import re
 
 import sqlglot
@@ -18,6 +19,53 @@ class UnsupportedSQL(NotImplementedError):
 
 
 PREFIX = "__frappe_mssql_bind_"
+
+
+def parse_unicode_literal(argument):
+    """Decode a complete T-SQL Unicode literal as data for Frappe's parser.
+
+    Return None for anything else so upstream field validation still applies.
+    A decoded string is passed to the parameterized builder, never executed.
+    """
+    if re.fullmatch(r"[Nn]'(?:[^']|'')*'", argument):
+        return argument[2:-1].replace("''", "'")
+    return None
+
+
+def ensure_read_only(query, values=None, *, native=False):
+    """Enforce Frappe's read-only transaction contract at the adapter boundary."""
+    try:
+        marked, _ = _mark(str(query), values, native=native)
+        statements = sqlglot.parse(marked, read="tsql" if native else "mysql", error_level=ErrorLevel.RAISE)
+        forbidden = (exp.DML, exp.DDL, exp.Into, exp.NextValueFor, exp.Command)
+        if len(statements) != 1 or not isinstance(statements[0], exp.Query):
+            raise UnsupportedSQL("Read-only transactions only accept a single SELECT query")
+        if any(isinstance(node, forbidden) for node in statements[0].walk()):
+            raise UnsupportedSQL("Writing or advancing a sequence in a read-only transaction is forbidden")
+    except SqlglotError as error:
+        raise UnsupportedSQL("Cannot validate the read-only query") from error
+
+
+def _parameter_type(value):
+    if value is None or isinstance(value, str):
+        return "nvarchar(max)"
+    if isinstance(value, bool):
+        return "bit"
+    if isinstance(value, int):
+        return "bigint" if -(2**63) <= value < 2**63 else "decimal(38,0)"
+    if isinstance(value, Decimal):
+        return f"decimal(38,{max(0, -value.as_tuple().exponent)})"
+    if isinstance(value, float):
+        return "float"
+    if isinstance(value, datetime):
+        return "datetime2(6)"
+    if isinstance(value, date):
+        return "date"
+    if isinstance(value, (time, timedelta)):
+        return "time(6)"
+    if isinstance(value, bytes):
+        return "varbinary(max)"
+    raise UnsupportedSQL("Unsupported parameter type in a grouped expression")
 
 
 def _normalize_single_values(expression, parameters):
@@ -72,6 +120,88 @@ def _render(expression, utc_offset_minutes=0):
             return value
         return node
     expression = expression.transform(clock)
+    def compatible_function(node):
+        if isinstance(node, exp.Coalesce) and not node.expressions:
+            return node.this.copy()
+        if isinstance(node, exp.Anonymous) and node.name.upper() == "UNIX_TIMESTAMP":
+            if len(node.expressions) > 1:
+                raise UnsupportedSQL("UNIX_TIMESTAMP expects at most one argument")
+            instant = node.expressions[0].copy() if node.expressions else exp.Anonymous(this="SYSUTCDATETIME")
+            if node.expressions:
+                instant = exp.Cast(this=instant, to=exp.DataType.build("datetime2(6)", dialect="tsql"))
+                instant = exp.Anonymous(this="DATEADD", expressions=[exp.Var(this="MINUTE"),
+                    exp.Literal.number(-int(utc_offset_minutes)), instant])
+            delta = exp.Anonymous(this="DATEDIFF_BIG", expressions=[exp.Var(this="MICROSECOND"),
+                exp.Cast(this=exp.Literal.string("1970-01-01"), to=exp.DataType.build("datetime2(6)", dialect="tsql")), instant])
+            if node.expressions:
+                delta = exp.Cast(this=delta, to=exp.DataType.build("decimal(28,6)", dialect="tsql"))
+            return exp.IntDiv(this=delta, expression=exp.Literal.number(1000000)) if not node.expressions else exp.Div(this=delta, expression=exp.Literal.number(1000000))
+        if isinstance(node, exp.ConcatWs):
+            return exp.Anonymous(this="CONCAT_WS", expressions=[item.copy() for item in node.expressions])
+        return node
+    expression = expression.transform(compatible_function)
+    def row_predicate(node):
+        if isinstance(node, exp.In) and not node.expressions and not node.args.get("query"):
+            return exp.EQ(this=exp.Literal.number(1), expression=exp.Literal.number(0))
+        if isinstance(node, exp.In) and isinstance(node.this.unnest(), exp.Tuple):
+            if node.args.get("query"):
+                raise UnsupportedSQL("Row IN subqueries require an explicit adaptation")
+            left_tuple = node.this.unnest()
+            alternatives = []
+            for row in node.expressions:
+                row = row.unnest()
+                if not isinstance(row, exp.Tuple) or len(row.expressions) != len(left_tuple.expressions):
+                    raise UnsupportedSQL("Row IN requires equally sized explicit tuples")
+                alternatives.append(exp.and_(*(exp.EQ(this=left.copy(), expression=right.copy())
+                    for left, right in zip(left_tuple.expressions, row.expressions))))
+            return exp.or_(*alternatives)
+        return node
+    expression = expression.transform(row_predicate)
+    def scalar_predicate(node):
+        condition = node.this if isinstance(node, exp.Paren) else node
+        if isinstance(condition, (exp.Predicate, exp.And, exp.Or, exp.Not)):
+            return exp.Case().when(condition.copy(), exp.Literal.number(1)).when(
+                exp.Not(this=condition.copy()), exp.Literal.number(0)).else_(exp.Null())
+        return node
+    for select in expression.find_all(exp.Select):
+        for item in select.expressions:
+            if isinstance(item, exp.Alias):
+                item.set("this", scalar_predicate(item.this))
+            else:
+                replacement = scalar_predicate(item)
+                if replacement is not item:
+                    item.replace(replacement)
+    for ordered in expression.find_all(exp.Ordered):
+        ordered.set("this", scalar_predicate(ordered.this))
+    for index, subquery in enumerate(expression.find_all(exp.Subquery)):
+        if isinstance(subquery.parent, (exp.From, exp.Join)) and not subquery.alias:
+            subquery.set("alias", exp.TableAlias(this=exp.to_identifier(f"__mssql_derived_{index}", quoted=True)))
+    for select in expression.find_all(exp.Select):
+        group = select.args.get("group")
+        if not group:
+            continue
+        tables = {table.alias_or_name: table.name for table in select.find_all(exp.Table)
+            if table.find_ancestor(exp.Select) is select}
+        sole = next(iter(tables)) if len(tables) == 1 else None
+        keyed = {field.table or sole for field in group.expressions
+            if isinstance(field, exp.Column) and field.name == "name"
+            and tables.get(field.table or sole, "").startswith("tab")}
+        # Frappe DocTypes have name as their primary key. Adding columns of that
+        # same row cannot split a group, and implements functional dependency
+        # rules that MariaDB/Postgres accept but SQL Server does not infer.
+        roots = list(select.expressions)
+        if select.args.get("order"):
+            roots.extend(select.args["order"].expressions)
+        for root in roots:
+            for column in root.find_all(exp.Column):
+                if column.find_ancestor(exp.Select) is not select:
+                    continue
+                if (column.table or sole) not in keyed:
+                    continue
+                if column.find_ancestor(exp.AggFunc):
+                    continue
+                if not any(column == field for field in group.expressions):
+                    group.append("expressions", column.copy())
     for update in expression.find_all(exp.Update):
         target = update.this
         if not isinstance(target, exp.Table):
@@ -232,6 +362,7 @@ def _mark(query, values, *, native=False):
 def compile_query(query, values=None, *, native=False, utc_offset_minutes=0):
     """Return SQL Server SQL and positional parameters for pyodbc.execute."""
     marked, params = _mark(str(query), values, native=native)
+    grouped = False
     if native:
         rendered = marked
     else:
@@ -240,12 +371,34 @@ def compile_query(query, values=None, *, native=False, utc_offset_minutes=0):
             if len(expressions) != 1 or expressions[0] is None:
                 raise UnsupportedSQL("Exactly one SQL statement is supported per execution")
             _normalize_single_values(expressions[0], params)
+            grouped = expressions[0].find(exp.Group) is not None
             rendered = _render(expressions[0], utc_offset_minutes=utc_offset_minutes)
         except SqlglotError as exc:
             # Deliberately do not include query text or bound secrets in errors.
             raise UnsupportedSQL("SQL translation failed; add an explicit backend adaptation") from exc
     bound = []
     pattern = re.compile(r"@" + PREFIX + r"(\d+)\b")
+
+    if grouped:
+        # Repeated ODBC '?' markers become different SQL Server variables. The
+        # engine then rejects identical parameterized SELECT/GROUP BY expressions.
+        # Bind once to typed local variables so those expressions stay identical.
+        indexes = []
+        for protected, text in _pieces(rendered, mysql_escapes=False):
+            if not protected:
+                indexes.extend(int(match.group(1)) for match in pattern.finditer(text))
+        canonical = {}
+        replacements = {}
+        for index in indexes:
+            key = (_parameter_type(params[index]), params[index])
+            replacements[index] = canonical.setdefault(key, index)
+        normalized = [replacements[index] for index in indexes]
+        if len(normalized) != len(set(normalized)):
+            unique = list(dict.fromkeys(normalized))
+            declarations = ", ".join(f"@{PREFIX}{index} {_parameter_type(params[index])} = ?" for index in unique)
+            rendered = "".join(text if protected else pattern.sub(lambda match: f"@{PREFIX}{replacements[int(match.group(1))]}", text)
+                for protected, text in _pieces(rendered, mysql_escapes=False))
+            return "DECLARE " + declarations + "; " + rendered, [params[index] for index in unique]
 
     def replace(match):
         bound.append(params[int(match.group(1))])

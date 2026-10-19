@@ -1,3 +1,124 @@
+--- a/erpnext/accounts/doctype/bank_clearance/bank_clearance.py
++++ b/erpnext/accounts/doctype/bank_clearance/bank_clearance.py
+@@ -219,7 +219,7 @@
+ 	if not include_reconciled_entries:
+ 		journal_entry_query = journal_entry_query.where(
+ 			(journal_entry.clearance_date.isnull())
+-			| (journal_entry.clearance_date == ("0000-00-00" if frappe.db.db_type != "postgres" else None))
++			| (journal_entry.clearance_date == ("0000-00-00" if frappe.db.db_type == "mariadb" else None))
+ 		)
+ 
+ 	journal_entries = (
+@@ -295,7 +295,7 @@
+ 	if not include_reconciled_entries:
+ 		payment_entry_query = payment_entry_query.where(
+ 			(pe.clearance_date.isnull())
+-			| (pe.clearance_date == ("0000-00-00" if frappe.db.db_type != "postgres" else None))
++			| (pe.clearance_date == ("0000-00-00" if frappe.db.db_type == "mariadb" else None))
+ 		)
+ 
+ 	payment_entries = (payment_entry_query.orderby(pe.posting_date).orderby(pe.name, order=Order.desc)).run(
+@@ -333,7 +333,7 @@
+ 	if not include_reconciled_entries:
+ 		paid_purchase_invoices_query = paid_purchase_invoices_query.where(
+ 			(pi.clearance_date.isnull())
+-			| (pi.clearance_date == ("0000-00-00" if frappe.db.db_type != "postgres" else None))
++			| (pi.clearance_date == ("0000-00-00" if frappe.db.db_type == "mariadb" else None))
+ 		)
+ 
+ 	paid_purchase_invoices = (
+@@ -374,7 +374,7 @@
+ 		if not include_reconciled_entries:
+ 			pos_sales_invoices_query = pos_sales_invoices_query.where(
+ 				(si_payment.clearance_date.isnull())
+-				| (si_payment.clearance_date == ("0000-00-00" if frappe.db.db_type != "postgres" else None))
++				| (si_payment.clearance_date == ("0000-00-00" if frappe.db.db_type == "mariadb" else None))
+ 			)
+ 
+ 		pos_sales_invoices = (
+--- a/erpnext/accounts/report/financial_statements.py
++++ b/erpnext/accounts/report/financial_statements.py
+@@ -750,7 +750,7 @@
+ 		query = query.where(gl_entry.is_cancelled == 0)
+ 		query = query.where(gl_entry.posting_date <= to_date)
+ 		# FORCE INDEX is MySQL-only; postgres has no index hints (its planner uses the index anyway)
+-		if frappe.db.db_type != "postgres":
++		if frappe.db.db_type == "mariadb":
+ 			query = query.force_index("posting_date_company_index")
+ 
+ 		if ignore_opening_entries and not ignore_is_opening:
+--- a/erpnext/controllers/queries.py
++++ b/erpnext/controllers/queries.py
+@@ -314,7 +314,7 @@
+ 	eol = item.end_of_life
+ 	date_conditions = [eol > nowdate(), eol.isnull()]
+ 	#  Add the condition if the db can evaluate it
+-	if frappe.db.db_type not in ["postgres"]:
++	if frappe.db.db_type == "mariadb":
+ 		date_conditions.append(eol == "0000-00-00")
+ 
+ 	date_condition = Criterion.any(date_conditions)
+--- a/erpnext/controllers/stock_controller.py
++++ b/erpnext/controllers/stock_controller.py
+@@ -847,7 +847,7 @@
+ 	# A locking read sees the latest committed rows and waits on uncommitted ones. Only the final
+ 	# repost decision asks for it: by then this voucher already holds these ranges, whereas an
+ 	# upfront lock over every item-warehouse pair deadlocks with concurrent submits.
+-	if for_update and frappe.db.db_type == "mariadb":
++	if for_update and frappe.db.db_type in ("mariadb", "mssql"):
+ 		query = query.for_update()
+ 
+ 	data = query.run(as_dict=1)
+--- a/erpnext/manufacturing/doctype/bom/bom.py
++++ b/erpnext/manufacturing/doctype/bom/bom.py
+@@ -1057,6 +1057,10 @@
+ 		"""Return this BOM and every descendant BOM. The whole sub-tree is fetched in one recursive
+ 		CTE (frappe.qb) instead of a query-per-node walk; the only caller (check_recursion) uses the
+ 		result purely as a membership set. Portable across postgres and mariadb 10.2+."""
++		if frappe.db.db_type == "mssql":
++			from frappe_mssql.reports import bom_graph_nodes
++			return bom_graph_nodes(self.name)
++
+ 		bom_item = frappe.qb.DocType("BOM Item")
+ 		tree = frappe.qb.Table("bom_tree")
+ 
+--- a/erpnext/manufacturing/doctype/bom_update_log/bom_updation_utils.py
++++ b/erpnext/manufacturing/doctype/bom_update_log/bom_updation_utils.py
+@@ -70,6 +70,10 @@
+ 	"""Return every ancestor BOM of `new_bom` (BOMs that consume it, transitively) in one recursive
+ 	CTE built with frappe.qb -- portable across postgres and mariadb 10.2+. `UNION` makes it
+ 	cycle-safe (it stops once no new BOM is reached); a BOM that is its own ancestor is rejected."""
++	if frappe.db.db_type == "mssql":
++		from frappe_mssql.reports import bom_graph_nodes
++		return bom_graph_nodes(new_bom, ancestors=True)
++
+ 	links = get_bom_links_query().as_("bom_links")
+ 	tree = frappe.qb.Table("ancestor_boms")
+ 
+--- a/erpnext/manufacturing/doctype/work_order/mapper.py
++++ b/erpnext/manufacturing/doctype/work_order/mapper.py
+@@ -62,7 +62,7 @@
+ 	# "not set" end_of_life is NULL on postgres (the MariaDB zero-date '0000-00-00' is an invalid
+ 	# date constant there), so only add the zero-date term on MariaDB.
+ 	is_alive = item_table.end_of_life.isnull() | (item_table.end_of_life > nowdate())
+-	if frappe.db.db_type != "postgres":
++	if frappe.db.db_type == "mariadb":
+ 		is_alive |= item_table.end_of_life == "0000-00-00"
+ 	return is_alive
+ 
+--- a/erpnext/manufacturing/report/bom_explorer/bom_explorer.py
++++ b/erpnext/manufacturing/report/bom_explorer/bom_explorer.py
+@@ -24,6 +24,10 @@
+ 	"""Every BOM Item in the exploded tree of `root_bom`, grouped by its parent BOM, in one
+ 	recursive CTE -- replaces a query-per-node walk with a single query. UNION keeps it cycle-safe
+ 	and fetches each sub-BOM's items only once even when it is reused across the tree."""
++	if frappe.db.db_type == "mssql":
++		from frappe_mssql.reports import bom_exploded_items
++		return bom_exploded_items(root_bom)
++
+ 	bom_item = frappe.qb.DocType("BOM Item")
+ 	child_bom = frappe.qb.DocType("BOM").as_("child_bom")
+ 	tree = frappe.qb.Table("exploded_bom")
 --- a/erpnext/patches/v16_0/update_serial_batch_entries.py
 +++ b/erpnext/patches/v16_0/update_serial_batch_entries.py
 @@ -93,7 +93,7 @@
@@ -9,3 +130,80 @@
  			"postgres": get_postgres_query(condition),
  		},
  		{"last_name": last_name, "upper": upper},
+--- a/erpnext/projects/doctype/task/task.py
++++ b/erpnext/projects/doctype/task/task.py
+@@ -371,6 +371,9 @@
+ 				frappe.throw(_("Circular Reference Error"), CircularReferenceError)
+ 
+ 	def _reaches_self(self, select_field: str, filter_field: str) -> bool:
++		if frappe.db.db_type == "mssql":
++			from frappe_mssql.reports import task_reaches_self
++			return task_reaches_self(self.name, select_field, filter_field)
+ 		depends_on = frappe.qb.DocType("Task Depends On")
+ 		tree = frappe.qb.Table("dependency_tree")
+ 		seed = (
+--- a/erpnext/stock/doctype/pick_list/pick_list.py
++++ b/erpnext/stock/doctype/pick_list/pick_list.py
+@@ -724,7 +724,7 @@
+ 		# picked-items locking read below already make two simultaneous allocations take turns;
+ 		# postgres locking reads can't see the rows another in-flight allocation is inserting, so
+ 		# both could claim the same stock. Sorted so overlapping documents can't deadlock.
+-		if frappe.db.db_type == "postgres" and hasattr(frappe.db, "transaction_advisory_lock"):
++		if frappe.db.db_type in ("postgres", "mssql") and hasattr(frappe.db, "transaction_advisory_lock"):
+ 			for item_code in sorted({d.item_code for d in items}):
+ 				frappe.db.transaction_advisory_lock(("pick-allocate", item_code))
+ 
+--- a/erpnext/stock/report/batch_split_tree/batch_split_tree.py
++++ b/erpnext/stock/report/batch_split_tree/batch_split_tree.py
+@@ -54,6 +54,10 @@
+ 		.where(child.reference_name.isnotnull() & (child.reference_name != ""))
+ 		.orderby(batch.batch_id)
+ 	)
++
++	if frappe.db.db_type == "mssql" and filters.item_code:
++		from frappe_mssql.reports import batch_ancestors_for_item
++		return query.where(batch.name.isin(batch_ancestors_for_item(filters.item_code)))
+ 
+ 	if filters.item_code:
+ 		ancestors = frappe.qb.Table("matching_batch_ancestors")
+@@ -81,6 +85,9 @@
+ 
+ 
+ def get_children_map(roots):
++	if frappe.db.db_type == "mssql":
++		from frappe_mssql.reports import batch_children_map
++		return batch_children_map(roots)
+ 	batch = frappe.qb.DocType("Batch")
+ 	tree = frappe.qb.Table("batch_split_tree")
+ 	fields = [
+--- a/erpnext/stock/report/stock_projected_qty/stock_projected_qty.py
++++ b/erpnext/stock/report/stock_projected_qty/stock_projected_qty.py
+@@ -301,7 +301,7 @@
+ 	# alive = end_of_life unset / future / MariaDB zero-date '0000-00-00' (an invalid date literal on
+ 	# postgres, where "not set" is NULL — already covered by IS NULL); zero-date term on MariaDB only.
+ 	alive = (item.end_of_life > today()) | item.end_of_life.isnull()
+-	if frappe.db.db_type != "postgres":
++	if frappe.db.db_type == "mariadb":
+ 		alive |= item.end_of_life == "0000-00-00"
+ 
+ 	query = (
+--- a/erpnext/stock/stock_ledger.py
++++ b/erpnext/stock/stock_ledger.py
+@@ -413,7 +413,7 @@
+ 	keeps the plain deadlock-retry path."""
+ 	# hasattr keeps this a graceful opt-in: on an ERPNext predating frappe.db.advisory_lock, fall
+ 	# back to no gate rather than raising and marking the Repost Item Valuation permanently Failed.
+-	if frappe.db.db_type == "postgres" and hasattr(frappe.db, "advisory_lock"):
++	if frappe.db.db_type in ("postgres", "mssql") and hasattr(frappe.db, "advisory_lock"):
+ 		# Tuple key: a colon in item_code/warehouse can't collide two distinct pairs onto one lock.
+ 		return frappe.db.advisory_lock(("stock_repost", item_code, warehouse), timeout=REPOST_LOCK_TIMEOUT)
+ 	return nullcontext()
+@@ -433,7 +433,7 @@
+ 	write is lost. Txn-scoped and re-entrant; released at commit/rollback. hasattr keeps a frappe
+ 	predating transaction_advisory_lock on the status quo (serialization-failure retries) instead
+ 	of breaking every stock submission."""
+-	if frappe.db.db_type == "postgres" and hasattr(frappe.db, "transaction_advisory_lock"):
++	if frappe.db.db_type in ("postgres", "mssql") and hasattr(frappe.db, "transaction_advisory_lock"):
+ 		frappe.db.transaction_advisory_lock(("stock-sle", item_code, warehouse), timeout=REPOST_LOCK_TIMEOUT)
+ 
+ 

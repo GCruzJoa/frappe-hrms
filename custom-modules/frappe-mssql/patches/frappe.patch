@@ -57,10 +57,27 @@
  		config["db_socket"] = os.environ.get("FRAPPE_DB_SOCKET") or config.get("db_socket")
  		config["db_host"] = os.environ.get("FRAPPE_DB_HOST") or config.get("db_host") or "127.0.0.1"
  		config["db_port"] = int(
+--- a/frappe/core/doctype/report/report.py
++++ b/frappe/core/doctype/report/report.py
+@@ -529,6 +529,8 @@
+ 
+ 
+ def get_report_module_dotted_path(module, report_name):
++	if frappe.db.db_type == "mssql" and module == "Stock" and report_name == "Item Balance (Simple)":
++		report_name = "Item Balance"
+ 	return (
+ 		frappe.local.module_app[scrub(module)]
+ 		+ "."
 --- a/frappe/core/report/database_storage_usage_by_tables/database_storage_usage_by_tables.py
 +++ b/frappe/core/report/database_storage_usage_by_tables/database_storage_usage_by_tables.py
-@@ -16,7 +16,15 @@
+@@ -14,9 +14,21 @@
+ def execute(filters=None):
+ 	frappe.only_for("System Manager")
  
++	if frappe.db.db_type == "mssql":
++		from frappe_mssql.diagnostics import table_storage
++		return COLUMNS, table_storage()
++
  	data = frappe.db.multisql(
  		{
 -			"mariadb": """
@@ -76,6 +93,30 @@
  				SELECT table_name AS `table`,
  						round(((data_length + index_length) / 1024 / 1024), 2) `size`,
  						round((data_length / 1024 / 1024), 2) as data_size,
+--- a/frappe/core/report/prepared_report_analytics/prepared_report_analytics.py
++++ b/frappe/core/report/prepared_report_analytics/prepared_report_analytics.py
+@@ -85,6 +85,12 @@
+ 	if filters.in_minutes:
+ 		divisor = 60
+ 
++	runtime = pr.report_end_time - pr.creation
++	if frappe.db.db_type == "mssql":
++		from pypika import CustomFunction
++		from pypika.terms import LiteralValue
++		runtime = CustomFunction("DATEDIFF_BIG", ["unit", "start", "end"])(LiteralValue("MICROSECOND"), pr.creation, pr.report_end_time) / 1000000
++
+ 	query = (
+ 		qb.from_(pr)
+ 		.select(
+@@ -94,7 +100,7 @@
+ 			pr.report_end_time,
+ 			(pr.peak_memory_usage / 1024).as_("peak_memory_usage"),
+ 		)
+-		.select(((pr.report_end_time - pr.creation) / divisor).as_("runtime"))
++		.select((runtime / divisor).as_("runtime"))
+ 		.where(Criterion.all(conditions))
+ 		.orderby(qb.Field("runtime"), order=Order.desc)
+ 	)
 --- a/frappe/database/__init__.py
 +++ b/frappe/database/__init__.py
 @@ -13,6 +13,10 @@
@@ -146,16 +187,17 @@
  			self.connect()
 --- a/frappe/database/query.py
 +++ b/frappe/database/query.py
-@@ -288,7 +288,7 @@
+@@ -288,7 +288,8 @@
  		qb = db.qb
  		db_type = db.db_type
  
 -		self.is_mariadb = db_type == "mariadb"
 +		self.is_mariadb = db_type in ("mariadb", "mssql")  # intermediate query syntax
++		self.is_mssql = db_type == "mssql"
  		self.is_postgres = db_type == "postgres"
  		self.is_sqlite = db_type == "sqlite"
  		self.user = user or frappe.session.user
-@@ -305,7 +305,7 @@
+@@ -305,7 +306,7 @@
  		self.link_table_aliases = {}
  		self.link_table_counts = {}
  
@@ -164,7 +206,7 @@
  
  		if isinstance(table, Table):
  			self.table = table
-@@ -353,7 +353,7 @@
+@@ -353,7 +354,7 @@
  			# In MariaDB and SQLite, offset requires limit. MAX_LIMIT overflows SQLite's signed
  			# integers, but SQLite reads a negative limit as no limit.
  			if not self.is_postgres and not limit:
@@ -173,7 +215,7 @@
  
  			self.query = self.query.offset(offset)
  
-@@ -375,7 +375,7 @@
+@@ -375,7 +376,7 @@
  
  		if order_by:
  			if not (
@@ -182,7 +224,7 @@
  				and is_select
  				and distinct
  				and not self._can_apply_distinct_order_by(order_by)
-@@ -384,7 +384,7 @@
+@@ -384,7 +385,7 @@
  			else:
  				warnings.warn(
  					(
@@ -191,6 +233,46 @@
  						"appear in the SELECT list when using with DISTINCT"
  					),
  					UserWarning,
+@@ -1364,7 +1365,7 @@
+ 
+ 		parsed_order_fields = self._validate_order_by(order_by)
+ 		for order_field, order_direction in parsed_order_fields:
+-			if self.is_postgres and self.is_aggregate_query:
++			if (self.is_postgres or self.is_mssql) and self.is_aggregate_query:
+ 				self.query = self.query.orderby(
+ 					self._normalize_postgres_order_field(order_field), order=order_direction
+ 				)
+@@ -1429,7 +1430,7 @@
+ 						order_direction = Order.desc if spec_order == "desc" else Order.asc
+ 					else:
+ 						order_direction = Order.asc if spec_order == "asc" else Order.desc
+-					if self.is_postgres and self.is_aggregate_query:
++					if (self.is_postgres or self.is_mssql) and self.is_aggregate_query:
+ 						self.query = self.query.orderby(
+ 							self._normalize_postgres_order_field(field), order=order_direction
+ 						)
+@@ -1441,7 +1442,7 @@
+ 				order_direction = Order.desc if sort_order.lower() == "desc" else Order.asc
+ 			else:
+ 				order_direction = Order.asc if sort_order.lower() == "asc" else Order.desc
+-			if self.is_postgres and self.is_aggregate_query:
++			if (self.is_postgres or self.is_mssql) and self.is_aggregate_query:
+ 				self.query = self.query.orderby(
+ 					self._normalize_postgres_order_field(field), order=order_direction
+ 				)
+@@ -2678,6 +2679,12 @@
+ 				)
+ 			return Star()
+ 
++		if frappe.db.db_type == "mssql":
++			from frappe_mssql.sql import parse_unicode_literal
++			literal = parse_unicode_literal(arg)
++			if literal is not None:
++				return literal
++
+ 		# Check for string literals (quoted strings)
+ 		if len(arg) >= 2 and arg[0] in ("'", '"') and arg[-1] == arg[0]:
+ 			# note: pypika handles proper escaping with wrap_constant
 --- a/frappe/database/sequence.py
 +++ b/frappe/database/sequence.py
 @@ -38,6 +38,9 @@

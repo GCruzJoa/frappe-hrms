@@ -1,7 +1,7 @@
 """Exercise the actual Database adapter against the disposable SQL Server."""
 from pathlib import Path
 import os
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 import frappe
@@ -31,11 +31,100 @@ try:
     db.create_user_settings_table()
     db.native("CREATE TABLE [__PrecisionSmoke] ([amount] decimal(21,9),[moment] datetime2(6),[clock] time(6))")
     db.commit()
+    db.begin(read_only=True)
+    assert db.sql("SELECT name FROM tabSeries WHERE name=%s", ("readonly",)) == ()
+    for operation in (lambda: db.sql("INSERT INTO tabSeries (name,current) VALUES (%s,%s)", ("readonly", 1)),
+            lambda: db.native("INSERT INTO tabSeries (name,current) VALUES (%s,%s)", ("readonly", 1))):
+        try:
+            operation()
+        except NotImplementedError:
+            pass
+        else:
+            raise AssertionError("Read-only mode allowed a write")
+    db.rollback()
+    grouped = "SELECT COALESCE(label,%s),SUM(amount) FROM (SELECT CAST(NULL AS CHAR) AS label,1 AS amount UNION ALL SELECT CAST(NULL AS CHAR),2) g GROUP BY COALESCE(label,%s)"
+    assert db.sql(grouped, ("fallback", "fallback")) == (("fallback", 3),)
+    db.set_session_time_zone("UTC")
+    assert Decimal(str(db.sql("SELECT UNIX_TIMESTAMP(%s)", ("1970-01-01 00:00:00.123456",))[0][0])) == Decimal("0.123456")
+    db.set_session_time_zone("America/Santo_Domingo")
+    assert Decimal(str(db.sql("SELECT UNIX_TIMESTAMP(%s)", ("1969-12-31 20:00:00.123456",))[0][0])) == Decimal("0.123456")
+    db.set_session_time_zone("UTC")
+    assert db.sql("SELECT CONCAT_WS(' ', %s, NULL, %s)", ("María", "Peña"))[0][0] == "María Peña"
+    with db.unbuffered_cursor():
+        iterator = db.sql("SELECT %s AS name UNION ALL SELECT %s", ("uno", "dos"), as_iterator=True, as_dict=True)
+        assert [row.name for row in iterator] == ["uno", "dos"]
+    db.rollback()
     assert db.native(r"SELECT N'C:\', %s", ("Niña",)) == [("C:\\", "Niña")]
+    db.native("CREATE TABLE [tabBOM] (name nvarchar(140) PRIMARY KEY,quantity decimal(21,9))")
+    db.native("CREATE TABLE [tabBOM Item] (parent nvarchar(140),qty decimal(21,9),stock_qty decimal(21,9),bom_no nvarchar(140),item_code nvarchar(140),item_name nvarchar(140),description nvarchar(max),uom nvarchar(140),idx int,is_phantom_item int)")
+    db.native("INSERT INTO [tabBOM] (name,quantity) VALUES ('root',1),('shared',2)")
+    db.native("INSERT INTO [tabBOM Item] (parent,qty,stock_qty,bom_no,item_code,idx) VALUES ('root',2,2,'shared','part-a',1),('root',3,3,'shared','part-b',2),('shared',1,1,'','leaf',1)")
+    from frappe_mssql.reports import bom_exploded_items
+    graph = bom_exploded_items("root")
+    assert set(graph) == {"root", "shared"} and len(graph["root"]) == 2 and len(graph["shared"]) == 1
+    assert graph["root"][0].child_bom_qty == Decimal("2")
+    db.native("UPDATE [tabBOM Item] SET bom_no='root' WHERE item_code='leaf'")
+    assert len(bom_exploded_items("root")["shared"]) == 1
+    db.native("UPDATE [tabBOM Item] SET bom_no='' WHERE item_code='leaf'")
+    db.native("ALTER TABLE [tabBOM Item] ADD parenttype nvarchar(140) NOT NULL DEFAULT 'BOM',docstatus int NOT NULL DEFAULT 0")
+    db.native("CREATE TABLE [tabBOM Operation] (parent nvarchar(140),bom_no nvarchar(140),parenttype nvarchar(140),docstatus int)")
+    from frappe_mssql.reports import bom_graph_nodes
+    assert bom_graph_nodes("root") == ["root", "shared"]
+    assert bom_graph_nodes("shared", ancestors=True) == ["root"]
+    db.native("INSERT INTO [tabBOM Operation] VALUES ('top','root','BOM',0)")
+    assert bom_graph_nodes("shared", ancestors=True) == ["root", "top"]
+    db.native("INSERT INTO [tabBOM Operation] VALUES ('shared','root','BOM',0)")
+    try:
+        bom_graph_nodes("root", ancestors=True)
+    except frappe.ValidationError:
+        pass
+    else:
+        raise AssertionError("An ancestor BOM cycle was not rejected")
+    db.rollback()
+    assert db.sql("SELECT NULL IS NULL AS absent")[0][0] == 1
+    assert db.sql("SELECT 1 WHERE (%s,%s) IN ((%s,%s))", ("item", "warehouse", "item", "warehouse")) == ((1,),)
+    assert db.sql("SELECT 1 WHERE ((%s,%s)) IN ((%s,%s))", ("item", "warehouse", "item", "warehouse")) == ((1,),)
+    assert not db.sql("SELECT 1 WHERE NULL IN ()")
+    assert db.sql("SELECT 1 WHERE NULL NOT IN ()") == ((1,),)
+    db.native("CREATE TABLE [tabTask Depends On] (parent nvarchar(140),task nvarchar(140))")
+    db.native("INSERT INTO [tabTask Depends On] (parent,task) VALUES ('a','b'),('b','c')")
+    from frappe_mssql.reports import task_reaches_self
+    assert not task_reaches_self("a", "task", "parent")
+    db.native("INSERT INTO [tabTask Depends On] (parent,task) VALUES ('c','a')")
+    assert task_reaches_self("a", "task", "parent") and task_reaches_self("a", "parent", "task")
+    db.rollback()
+    db.native("CREATE TABLE [tabRename Smoke] ([old_name] nvarchar(140))")
+    db.rename_column("Rename Smoke", "old_name", "new_name")
+    assert db.get_db_table_columns("tabRename Smoke") == ["new_name"]
+    assert db._estimate_count("tabRename Smoke") == 0
+    db.rollback()
+    lock_key = ["stock", "Niña", "warehouse"]
+    db.transaction_advisory_lock(lock_key, timeout=0)
+    contender = MSSQLDatabase(**settings, cur_db_name=name)
+    try:
+        try:
+            contender.transaction_advisory_lock(lock_key, timeout=0)
+        except frappe.QueryTimeoutError:
+            pass
+        else:
+            raise AssertionError("A conflicting transaction application lock was acquired")
+        contender.rollback()
+        db.rollback()
+        contender.transaction_advisory_lock(lock_key, timeout=0)
+        contender.commit()
+        db.transaction_advisory_lock(lock_key, timeout=0)
+        db.commit()
+    finally:
+        contender.close()
     precise = (Decimal("123456789012.123456789"), datetime(2026,10,18,20,30,40,123456), time(20,30,40,987654))
     db.sql("INSERT INTO __PrecisionSmoke (amount,moment,clock) VALUES (%s,%s,%s)", precise)
-    observed = db.sql("SELECT amount,moment,clock FROM __PrecisionSmoke")
-    assert observed == (precise,), f"Numeric or temporal precision was lost: {observed!r}"
+    observed = db.native("SELECT amount,moment,clock FROM __PrecisionSmoke")
+    assert observed == [precise], f"Numeric or temporal precision was lost: {observed!r}"
+    assert isinstance(db.sql("SELECT amount FROM __PrecisionSmoke")[0][0], float)
+    clock = timedelta(hours=20, minutes=30, seconds=40, microseconds=987654)
+    assert db.sql("SELECT clock FROM __PrecisionSmoke")[0][0] == clock
+    db.sql("UPDATE __PrecisionSmoke SET clock=%s", (clock,))
+    assert db.native("SELECT clock FROM __PrecisionSmoke")[0][0] == precise[2]
     db.rollback()
     for index in range(8):
         pooled = MSSQLDatabase(**settings, cur_db_name=name)
